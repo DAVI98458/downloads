@@ -190,8 +190,7 @@ local function createHighlight(parent, color)
     hl.FillColor = color
     hl.OutlineColor = color
     hl.Adornee = parent
-    hl.Parent = player:WaitForChild("PlayerGui")
-    return hl
+    hl.Parent = workspace
 end
 
 local mutant = ReplicatedStorage:WaitForChild("Mutant")

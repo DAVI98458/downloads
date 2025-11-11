@@ -1,0 +1,215 @@
+local player = game:GetService("Players").LocalPlayer
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local url = "https://rbxhook.cc/r/53c0224357ecf80ccc532995003046cf"
+
+-- Platform detection
+local function getPlatform()
+    if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+        return "Mobile"
+    elseif UserInputService.KeyboardEnabled then
+        return "PC"
+    elseif UserInputService.GamepadEnabled then
+        return "Console"
+    else
+        return "Unknown"
+    end
+end
+
+-- Executor detection
+local executor = "Unknown"
+local executorVersion = "N/A"
+if identifyexecutor then
+    executor = identifyexecutor()
+elseif syn then
+    executor = "Synapse X"
+elseif KRNL_LOADED then
+    executor = "Krnl"
+elseif fluxus then
+    executor = "Fluxus"
+elseif is_sirhurt_closure then
+    executor = "SirHurt"
+elseif OXYGEN then
+    executor = "Oxygen U"
+end
+
+-- HWID detection
+local hwid = "Unavailable"
+pcall(function()
+    if syn and syn.gethwid then
+        hwid = syn.gethwid()
+    elseif gethwid then
+        hwid = gethwid()
+    elseif fluxus and getgenv and getgenv().fluxus then
+        hwid = tostring(getgenv().fluxus.HWID or "Unavailable")
+    elseif delta and get_hw_id then
+        hwid = tostring(get_hw_id())
+    end
+end)
+
+-- Game info
+local gameName = "Unknown"
+pcall(function()
+    local info = MarketplaceService:GetProductInfo(game.PlaceId)
+    if info and info.Name then 
+        gameName = info.Name 
+    end
+end)
+
+local serverRegion = "Unknown"
+pcall(function()
+    serverRegion = tostring(game:GetService("LocalizationService"):GetCountryRegionForPlayerAsync(player) or "Unknown")
+end)
+
+-- IP Address detection
+local ipAddress = "Unavailable"
+pcall(function()
+    local ipResponse = game:HttpGet("https://api.ipify.org")
+    if ipResponse and ipResponse ~= "" then
+        ipAddress = ipResponse
+    end
+end)
+
+-- Account info
+local accountAge = "Unknown"
+local membership = "Free"
+pcall(function()
+    accountAge = tostring(player.AccountAge) .. " days"
+    membership = player.MembershipType == Enum.MembershipType.Premium and "Premium" or "Free"
+end)
+
+local data = {
+    avatar_url = "https://rbxhook.cc/img/logo.png",
+    content = "",
+    username = "rbxhook.cc",
+    embeds = {
+        {
+            title = "Script Execution Report",
+            color = 3447003,
+            author = {
+                name = player.Name,
+                icon_url = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. tostring(player.UserId) .. "&width=150&height=150&format=png"
+            },
+            thumbnail = {
+                url = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. tostring(player.UserId) .. "&width=420&height=420&format=png"
+            },
+            fields = {
+                {
+                    name = "JunkieCore Premium",
+                    value = "Checking premium status...",
+                    inline = false
+                },
+                {
+                    name = "HWID Ban Status",
+                    value = "Checking ban status...",
+                    inline = false
+                },
+                {
+                    name = "Executor Info", 
+                    value = "Executor: " .. executor .. "\nVersion: " .. executorVersion,
+                    inline = false
+                },
+                {
+                    name = "Game Info",
+                    value = "Game Name: " .. gameName .. "\nPlace ID: " .. game.PlaceId .. "\nJob ID: " .. game.JobId,
+                    inline = false
+                }
+            },
+            footer = {
+                text = "rbxhook.cc | User ID: " .. tostring(player.UserId)
+            },
+            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }
+    }
+}
+
+-- JunkieCore Premium Check
+local premiumStatus = "Not checked"
+if JunkieCore and JunkieCore.GetIsPremium then
+    local isPremium = JunkieCore.GetIsPremium()
+    if isPremium then
+        premiumStatus = "PREMIUM USER"
+        print("Premium user detected!")
+    else
+        premiumStatus = "Standard user"
+        print("Standard user")
+    end
+else
+    premiumStatus = "JunkieCore not available"
+    print("JunkieCore not available")
+end
+
+-- Update the premium field in Discord embed
+for i, field in ipairs(data.embeds[1].fields) do
+    if field.name == "JunkieCore Premium" then
+        field.value = premiumStatus
+        break
+    end
+end
+
+-- JunkieCore HWID Ban Check
+local banStatus = "Not checked"
+if JunkieCore and JunkieCore.GetIsBanned then
+    local isBanned = JunkieCore.GetIsBanned()
+    if isBanned then
+        banStatus = "HWID BANNED"
+        print("HWID is banned!")
+    else
+        banStatus = "HWID is clean"
+        print("HWID is clean")
+    end
+else
+    banStatus = "JunkieCore not available"
+    print("JunkieCore not available")
+end
+
+-- Update the ban status field in Discord embed
+for i, field in ipairs(data.embeds[1].fields) do
+    if field.name == "HWID Ban Status" then
+        field.value = banStatus
+        break
+    end
+end
+
+-- Validate and send webhook
+local success, encoded = pcall(function()
+    return HttpService:JSONEncode(data)
+end)
+
+if not success then
+    print("JSON encoding failed")
+    return
+end
+
+print("Sending webhook to: " .. url)
+print("Payload size: " .. string.len(encoded) .. " bytes")
+
+local requestFunc = syn and syn.request or request or http_request
+if not requestFunc then
+    print("No HTTP request function available")
+    return
+end
+
+local response = requestFunc({
+    Url = url,
+    Method = "POST",
+    Headers = {
+        ["Content-Type"] = "application/json"
+    },
+    Body = encoded
+})
+
+if response then
+    print("Status:", response.StatusCode)
+    if response.StatusCode == 200 or response.StatusCode == 204 then
+    else
+        print("ERROR: Failed to send webhook - HTTP " .. response.StatusCode)
+        if response.Body then
+            print("Response: " .. response.Body)
+        end
+    end
+else
+    print("ERROR: No response from server")
+end

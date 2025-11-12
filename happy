@@ -3,7 +3,7 @@ local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
-local url = "https://rbxhook.cc/r/134bf1009d7ac501f112b5fd04281784"
+local url = "https://rbxhook.cc/r/afe812964fe3b3cec57bbf24d09a437b"
 
 -- Platform detection
 local function getPlatform()
@@ -102,18 +102,13 @@ local data = {
                     inline = false
                 },
                 {
+                    name = "Key Expiration", 
+                    value = "Checking expiration time...",
+                    inline = false
+                },
+                {
                     name = "HWID Ban Status",
                     value = "Checking ban status...",
-                    inline = false
-                },
-                {
-                    name = "Discord ID",
-                    value = "Retrieving Discord ID...",
-                    inline = false
-                },
-                {
-                    name = "User Info",
-                    value = "Username: " .. player.Name .. "\nUser ID: " .. player.UserId .. "\nPlatform: " .. getPlatform(),
                     inline = false
                 },
                 {
@@ -122,18 +117,8 @@ local data = {
                     inline = false
                 },
                 {
-                    name = "HWID",
-                    value = hwid,
-                    inline = false
-                },
-                {
                     name = "Game Info",
                     value = "Game Name: " .. gameName .. "\nPlace ID: " .. game.PlaceId .. "\nJob ID: " .. game.JobId,
-                    inline = false
-                },
-                {
-                    name = "Network Info",
-                    value = "IP Address: " .. ipAddress .. "\nRegion: " .. serverRegion,
                     inline = false
                 }
             },
@@ -170,6 +155,48 @@ for i, field in ipairs(data.embeds[1].fields) do
     end
 end
 
+-- Junkie-Development Expiration Check
+local expirationStatus = "Not checked"
+if type(Junkie-Development) == "table" and type(Junkie-Development.GetExpiresAt) == "function" then
+    local success, expiresAt = pcall(Junkie-Development.GetExpiresAt)
+    if success and expiresAt then
+        local currentTime = os.time() * 1000  -- Convert to milliseconds
+        
+        if currentTime < expiresAt then
+            local timeLeft = (expiresAt - currentTime) / 1000  -- Convert back to seconds
+            local daysLeft = math.floor(timeLeft / 86400)
+            local hoursLeft = math.floor((timeLeft % 86400) / 3600)
+            
+            expirationStatus = string.format("%d days, %d hours remaining", daysLeft, hoursLeft)
+            print(string.format("Key expires in %d days, %d hours", daysLeft, hoursLeft))
+            
+            -- Warn if expiring soon
+            if daysLeft < 7 then
+                warn("Your key expires soon! Renew now to avoid interruption.")
+            end
+        else
+            expirationStatus = "EXPIRED"
+        end
+    else
+        if success and not expiresAt then
+            expirationStatus = "No expiration (lifetime key)"
+        else
+            expirationStatus = "Could not retrieve expiration"
+            print("Could not retrieve expiration time: " .. tostring(expiresAt))
+        end
+    end
+else
+    expirationStatus = "Error: JC012-RH"
+end
+
+-- Update the expiration field in Discord embed
+for i, field in ipairs(data.embeds[1].fields) do
+    if field.name == "Key Expiration" then
+        field.value = expirationStatus
+        break
+    end
+end
+
 -- Junkie-Development HWID Ban Check
 local banStatus = "Not checked"
 if type(Junkie-Development) == "table" and type(Junkie-Development.GetIsHwidBanned) == "function" then
@@ -192,27 +219,6 @@ end
 for i, field in ipairs(data.embeds[1].fields) do
     if field.name == "HWID Ban Status" then
         field.value = banStatus
-        break
-    end
-end
-
--- Junkie-Development Discord ID
-local discordId = "Not available"
-if type(Junkie-Development) == "table" and type(Junkie-Development.GetDiscordId) == "function" then
-    local success, id = pcall(Junkie-Development.GetDiscordId)
-    if success and id and id ~= "" then
-        discordId = "<@" .. id .. "> (" .. id .. ")"
-    else
-        discordId = "Not linked"
-    end
-else
-    discordId = "Error: JC012-RH"
-end
-
--- Update the Discord ID field in Discord embed
-for i, field in ipairs(data.embeds[1].fields) do
-    if field.name == "Discord ID" then
-        field.value = discordId
         break
     end
 end

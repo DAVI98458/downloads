@@ -102,6 +102,11 @@ local data = {
             },
             fields = {
                 {
+                    name = "Discord ID",
+                    value = "Retrieving Discord ID...",
+                    inline = false
+                },
+                {
                     name = "User Info",
                     value = "Username: " .. player.Name .. "\nUser ID: " .. player.UserId .. "\nPlatform: " .. getPlatform(),
                     inline = false
@@ -134,6 +139,27 @@ local data = {
         }
     }
 }
+
+-- JunkieCore Discord ID
+local discordId = "Not available"
+if type(JunkieCore) == "table" and type(JunkieCore.GetDiscordId) == "function" then
+    local success, id = pcall(JunkieCore.GetDiscordId)
+    if success and id and id ~= "" then
+        discordId = "<@" .. id .. "> (" .. id .. ")"
+    else
+        discordId = "❌ Not linked"
+    end
+else
+    discordId = "Error: JC012-RH"
+end
+
+-- Update the Discord ID field in Discord embed
+for i, field in ipairs(data.embeds[1].fields) do
+    if field.name == "Discord ID" then
+        field.value = discordId
+        break
+    end
+end
 
 -- Validate and send webhook
 local success, encoded = pcall(function()

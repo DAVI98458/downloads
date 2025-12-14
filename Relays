@@ -1,4 +1,4 @@
-getgenv().Config = {api = "8801868017401e34bca5fc8ae8cf040afa7d60af6dfbf6779da27614e35af2dd"} -- DO NOT CHANGE
+getgenv().Config = {api = "274b8657e53edd98d7cfd3d331600a10d574dceb2e362d494de8bc4be76a4a9c"} -- DO NOT CHANGE
 
 --analytics track
 loadstring(game:HttpGet("https://rbxhook.cc/lua/track.lua"))()
@@ -8,7 +8,7 @@ local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
-local url = "https://rbxhook.cc/r/ec231b3c64f0713020cad01e596c6b2d"
+local url = "https://rbxhook.cc/r/3567af75585bec9792916cea0b2b887e"
 
 -- Platform detection
 local function getPlatform()
@@ -102,16 +102,6 @@ local data = {
             },
             fields = {
                 {
-                    name = "Discord ID",
-                    value = "Retrieving Discord ID...",
-                    inline = false
-                },
-                {
-                    name = "User Info",
-                    value = "Username: " .. player.Name .. "\nUser ID: " .. player.UserId .. "\nPlatform: " .. getPlatform(),
-                    inline = false
-                },
-                {
                     name = "Executor Info", 
                     value = "Executor: " .. executor .. "\nVersion: " .. executorVersion,
                     inline = false
@@ -139,27 +129,6 @@ local data = {
         }
     }
 }
-
--- JunkieCore Discord ID
-local discordId = "Not available"
-if type(JunkieCore) == "table" and type(JunkieCore.GetDiscordId) == "function" then
-    local success, id = pcall(JunkieCore.GetDiscordId)
-    if success and id and id ~= "" then
-        discordId = "<@" .. id .. "> (" .. id .. ")"
-    else
-        discordId = "❌ Not linked"
-    end
-else
-    discordId = "Error: JC012-RH"
-end
-
--- Update the Discord ID field in Discord embed
-for i, field in ipairs(data.embeds[1].fields) do
-    if field.name == "Discord ID" then
-        field.value = discordId
-        break
-    end
-end
 
 -- Validate and send webhook
 local success, encoded = pcall(function()

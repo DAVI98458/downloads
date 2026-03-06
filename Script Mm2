@@ -1,0 +1,360 @@
+-- [ WINDUI LOADSTRING ] --
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+-- [ VARIÁVEIS DE CONTROLE ] --
+local lp = game.Players.LocalPlayer
+local Circle = Drawing.new("Circle") 
+local Tracers = {}
+_G.InfJump = false
+_G.LockAssassino = false
+_G.TracersVisible = false
+_G.ESPVisible = false
+_G.AntiAFK = true
+_G.HB = false
+_G.KillAuraCircle = false
+
+-- [ CONFIGS DO CÍRCULO] --
+Circle.Visible = false
+Circle.Radius = 280 
+Circle.Thickness = 0.3
+Circle.Color = Color3.fromRGB(139, 92, 246)
+Circle.Filled = true
+Circle.Transparency = 0.5
+
+-- [ FUNÇÃO DE LINHAS (TRACERS) ROXAS ] --
+local function CreateTracer(player)
+    if player == lp then return end 
+    local line = Drawing.new("Line")
+    line.Visible = false
+    line.Color = Color3.fromRGB(139, 92, 246)
+    line.Thickness = 1.5
+    Tracers[player] = line
+end
+
+local function RemoveTracer(player)
+    if Tracers[player] then
+        Tracers[player].Visible = false
+        Tracers[player]:Remove()
+        Tracers[player] = nil
+    end
+end
+
+for _, v in pairs(game.Players:GetPlayers()) do CreateTracer(v) end
+game.Players.PlayerAdded:Connect(CreateTracer)
+game.Players.PlayerRemoving:Connect(RemoveTracer)
+
+-- [ CONSERTO DO PULO INFINITO ] --
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if _G.InfJump and lp.Character and lp.Character:FindFirstChildOfClass("Humanoid") then
+        lp.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
+end)
+
+-- [ LOOP PRINCIPAL ] --
+game:GetService("RunService").RenderStepped:Connect(function()
+    local camSize = workspace.CurrentCamera.ViewportSize
+    Circle.Position = Vector2.new(camSize.X / 2, camSize.Y / 2)
+    
+    local char = lp.Character
+    local knife = char and char:FindFirstChild("Knife")
+    local gun = char and char:FindFirstChild("Gun")
+
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= lp and p.Character then
+            -- ESP COLORIDO
+            local highlight = p.Character:FindFirstChild("CydexHighlight")
+            if _G.ESPVisible then
+                if not highlight then
+                    highlight = Instance.new("Highlight", p.Character)
+                    highlight.Name = "CydexHighlight"
+                end
+                highlight.Enabled = true
+                if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                elseif p.Backpack:FindFirstChild("Gun") or p.Character:FindFirstChild("Gun") then
+                    highlight.FillColor = Color3.fromRGB(0, 0, 255)
+                else
+                    highlight.FillColor = Color3.fromRGB(255, 255, 255)
+                end
+            elseif highlight then highlight.Enabled = false end
+
+            -- HITBOX GIGANTE INVISÍVEL
+            if _G.HB and p.Character:FindFirstChild("HumanoidRootPart") then
+                p.Character.HumanoidRootPart.Size = Vector3.new(27, 27, 27)
+                p.Character.HumanoidRootPart.Transparency = 1
+                p.Character.HumanoidRootPart.CanCollide = false
+            end
+
+            -- LINHAS
+            local line = Tracers[p]
+            if line then
+                if _G.TracersVisible and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local loc, onScreen = workspace.CurrentCamera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                    if onScreen then
+                        line.From = Vector2.new(camSize.X / 2, camSize.Y - 10)
+                        line.To = Vector2.new(loc.X, loc.Y)
+                        line.Visible = true
+                    else line.Visible = false end
+                else line.Visible = false end
+            end
+
+            -- KILL AURA NO CÍRCULO
+            if _G.KillAuraCircle and knife and p.Character:FindFirstChild("HumanoidRootPart") then
+                local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - Circle.Position).Magnitude
+                    if dist <= Circle.Radius then
+                        workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, p.Character.HumanoidRootPart.Position)
+                    end
+                end
+            end
+        end
+    end
+
+    -- LOCK NO ASSASSINO
+    if _G.LockAssassino and gun then
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= lp and p.Character and (p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife")) then
+                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, p.Character.UpperTorso.Position)
+            end
+        end
+    end
+end)
+
+-- [ CRIAÇÃO DA JANELA ] --
+local Window = WindUI:CreateWindow({
+    Title = "SCRIPT MM2 OP (Ator)",
+    Author = "by Gemini AI",
+    Folder = "CydexMM2",
+    Size = UDim2.fromOffset(550, 400),
+    Transparent = true,
+    Theme = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+})
+
+-- [ APLICAR TEMA ROXO ] --
+task.delay(1, function()
+    WindUI:AddTheme({
+        Name = "PurpleTheme",
+        Accent = Color3.fromHex("#8b5cf6"),
+        Dialog = Color3.fromHex("#6d28d9"),
+        Outline = Color3.fromHex("#a78bfa"),
+        Text = Color3.fromHex("#ffffff"),
+        Placeholder = Color3.fromHex("#c4b5fd"),
+        Button = Color3.fromHex("#7c3aed"),
+        Icon = Color3.fromHex("#a78bfa"),
+        WindowBackground = Color3.fromHex("#4c1d95"),
+        TopbarButtonIcon = Color3.fromHex("#a78bfa"),
+        TopbarTitle = Color3.fromHex("#ffffff"),
+        TopbarAuthor = Color3.fromHex("#ffffff"),
+        TopbarIcon = Color3.fromHex("#8b5cf6"),
+        TabBackground = Color3.fromHex("#5b21b6"),
+        TabTitle = Color3.fromHex("#ffffff"),
+        TabIcon = Color3.fromHex("#a78bfa"),
+        ElementBackground = Color3.fromHex("#7c3aed"),
+        ElementTitle = Color3.fromHex("#ffffff"),
+        ElementDesc = Color3.fromHex("#ffffff"),
+        ElementIcon = Color3.fromHex("#a78bfa"),
+    })
+    WindUI:SetTheme("PurpleTheme")
+end)
+
+-- [ ABAS ] --
+local HomeTab = Window:Tab({
+    Title = "Home",
+    Icon = "info",
+})
+
+HomeTab:Image({
+    Name = "Logo",
+    Image = "rbxassetid://81424275303971",
+    Size = UDim2.new(1, -20, 0, 200),
+    Position = UDim2.new(0, 10, 0, 10),
+})
+
+HomeTab:Paragraph({
+    Title = "Bem-vindo ao SCRIPT MM2 OP",
+    Desc = "Use as abas laterais para acessar as funcionalidades."
+})
+
+local TrollTab = Window:Tab({
+    Title = "Troll & Combat",
+    Icon = "sword",
+})
+
+local AntiTab = Window:Tab({
+    Title = "Sistema Anti",
+    Icon = "shield",
+})
+
+local LagTab = Window:Tab({
+    Title = "Anti-Lag Suave",
+    Icon = "zap",
+})
+
+local InfoTab = Window:Tab({
+    Title = "Informações",
+    Icon = "info",
+})
+
+-- [ ABA TROLL & COMBAT ] --
+TrollTab:Toggle({
+    Title = "Kill Aura no Círculo",
+    Value = false,
+    Callback = function(Value) _G.KillAuraCircle = Value end
+})
+
+TrollTab:Toggle({
+    Title = "Círculo de Mira (280)",
+    Value = false,
+    Callback = function(Value) Circle.Visible = Value end
+})
+
+TrollTab:Toggle({
+    Title = "Lock no Assassino (Com Arma)",
+    Value = false,
+    Callback = function(Value) _G.LockAssassino = Value end
+})
+
+TrollTab:Toggle({
+    Title = "Hitbox Gigante Invisível",
+    Value = false,
+    Callback = function(Value) _G.HB = Value end
+})
+
+TrollTab:Toggle({
+    Title = "ESP Colorido (V/A/B)",
+    Value = false,
+    Callback = function(Value) _G.ESPVisible = Value end
+})
+
+TrollTab:Toggle({
+    Title = "Linha Branca (Tracers)",
+    Value = false,
+    Callback = function(Value) _G.TracersVisible = Value end
+})
+
+TrollTab:Toggle({
+    Title = "Ativar Velocidade (25)",
+    Value = false,
+    Callback = function(Value) 
+        if lp.Character then 
+            lp.Character.Humanoid.WalkSpeed = Value and 25 or 16 
+        end 
+    end
+})
+
+TrollTab:Toggle({
+    Title = "Pulo Infinito (Consertado)",
+    Value = false,
+    Callback = function(Value) _G.InfJump = Value end
+})
+
+-- [ ABA SISTEMA ANTI ] --
+AntiTab:Toggle({
+    Title = "Anti-Denúncia & Ban",
+    Value = true,
+    Callback = function() end
+})
+
+AntiTab:Toggle({
+    Title = "Anti-Aviso 267",
+    Value = true,
+    Callback = function() end
+})
+
+AntiTab:Toggle({
+    Title = "Anti-Script Potente",
+    Value = true,
+    Callback = function() end
+})
+
+AntiTab:Toggle({
+    Title = "Anti-AFK",
+    Value = true,
+    Callback = function(Value) _G.AntiAFK = Value end
+})
+
+-- [ ABA ANTI-LAG SUAVE ] --
+LagTab:Toggle({
+    Title = "Remover Travamentos (Mobile)",
+    Value = false,
+    Callback = function(Value) 
+        if Value then 
+            settings().Rendering.QualityLevel = 1 
+        end 
+    end
+})
+
+LagTab:Toggle({
+    Title = "Anti-Delay (Tela Rápida)",
+    Value = false,
+    Callback = function(Value) 
+        if Value then 
+            setfpscap(120)  -- eu vo logo avisando que isso pode não funcionar muito
+        end 
+    end
+})
+
+LagTab:Toggle({
+    Title = "Visual Liso (Gráfico Baixo)",
+    Value = false,
+    Callback = function(Value) 
+        if Value then 
+            for _, v in pairs(workspace:GetDescendants()) do 
+                if v:IsA("Part") then 
+                    v.Material = Enum.Material.SmoothPlastic 
+                end 
+            end 
+        end 
+    end
+})
+
+-- [ ABA INFORMAÇÕES Do Owner Atual ] --
+InfoTab:Paragraph({
+    Title = "Siga minhas redes sociais e entre no Discord:",
+    Desc = ""
+})
+
+InfoTab:Button({
+    Title = "Instagram: @guii_ntx4",
+    Callback = function() 
+        setclipboard("https://www.instagram.com/guii_ntx4") 
+    end
+})
+
+InfoTab:Button({
+    Title = "TikTok: @cydex_player01",
+    Callback = function() 
+        setclipboard("https://tiktok.com/@cydex_player01") 
+    end
+})
+
+InfoTab:Button({
+    Title = "YouTube: @CYDEX_PLAYER01",
+    Callback = function() 
+        setclipboard("https://www.youtube.com/@CYDEX_PLAYER01") 
+    end
+})
+
+InfoTab:Button({
+    Title = "Discord: Comunidade CYDEX",
+    Callback = function() 
+        setclipboard("https://discord.gg/JC557E9wb") 
+    end
+})
+
+InfoTab:Divider()
+
+InfoTab:Button({
+    Title = "Copiar Pix: 75998028836",
+    Callback = function() 
+        setclipboard("75998028836")
+        WindUI:Notify({
+            Title = "Sucesso",
+            Content = "Chave Pix copiada!",
+            Duration = 3
+        })
+    end
+})

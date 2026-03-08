@@ -1,0 +1,695 @@
+-- [ SISTEMA DE KEY UI MODERNA ] --
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Configurações
+local CORRECT_KEY = "CYDEX01"
+local DISCORD_LINK = "https://discord.gg/JC557E9wb"
+
+-- Criar ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CydexKeySystem"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+-- Frame Principal (Moderno, Arredondado, Blur)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "KeyFrame"
+mainFrame.Size = UDim2.new(0, 420, 0, 280)
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -140)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+-- Cantos arredondados
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 16)
+corner.Parent = mainFrame
+
+-- Gradiente sutil
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 50)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+})
+gradient.Rotation = 45
+gradient.Parent = mainFrame
+
+-- Borda brilhante roxa
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(139, 92, 246)
+stroke.Thickness = 2
+stroke.Transparency = 0.3
+stroke.Parent = mainFrame
+
+-- Header/Barra de título
+local header = Instance.new("Frame")
+header.Name = "Header"
+header.Size = UDim2.new(1, 0, 0, 50)
+header.BackgroundColor3 = Color3.fromRGB(139, 92, 246)
+header.BorderSizePixel = 0
+header.Parent = mainFrame
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 16)
+headerCorner.Parent = header
+
+-- Corrigir cantos inferiores do header
+local headerFix = Instance.new("Frame")
+headerFix.Size = UDim2.new(1, 0, 0, 20)
+headerFix.Position = UDim2.new(0, 0, 1, -20)
+headerFix.BackgroundColor3 = Color3.fromRGB(139, 92, 246)
+headerFix.BorderSizePixel = 0
+headerFix.Parent = header
+
+-- Título
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -60, 1, 0)
+title.Position = UDim2.new(0, 15, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "🔐 CYDEX KEY SYSTEM"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+-- Botão fechar (X)
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "Close"
+closeBtn.Size = UDim2.new(0, 35, 0, 35)
+closeBtn.Position = UDim2.new(1, -45, 0, 7)
+closeBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 16
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = header
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeBtn
+
+-- Conteúdo
+local content = Instance.new("Frame")
+content.Name = "Content"
+content.Size = UDim2.new(1, -40, 1, -70)
+content.Position = UDim2.new(0, 20, 0, 60)
+content.BackgroundTransparency = 1
+content.Parent = mainFrame
+
+-- Descrição
+local desc = Instance.new("TextLabel")
+desc.Name = "Description"
+desc.Size = UDim2.new(1, 0, 0, 40)
+desc.BackgroundTransparency = 1
+desc.Text = "Digite a key de acesso para liberar o script MM2"
+desc.TextColor3 = Color3.fromRGB(200, 200, 220)
+desc.TextSize = 14
+desc.Font = Enum.Font.Gotham
+desc.TextWrapped = true
+desc.Parent = content
+
+-- Caixa de input
+local inputFrame = Instance.new("Frame")
+inputFrame.Name = "InputFrame"
+inputFrame.Size = UDim2.new(1, 0, 0, 45)
+inputFrame.Position = UDim2.new(0, 0, 0, 50)
+inputFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+inputFrame.BorderSizePixel = 0
+inputFrame.Parent = content
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 10)
+inputCorner.Parent = inputFrame
+
+local inputStroke = Instance.new("UIStroke")
+inputStroke.Color = Color3.fromRGB(139, 92, 246)
+inputStroke.Thickness = 1.5
+inputStroke.Transparency = 0.5
+inputStroke.Parent = inputFrame
+
+-- TextBox
+local keyInput = Instance.new("TextBox")
+keyInput.Name = "KeyInput"
+keyInput.Size = UDim2.new(1, -20, 1, 0)
+keyInput.Position = UDim2.new(0, 10, 0, 0)
+keyInput.BackgroundTransparency = 1
+keyInput.PlaceholderText = "Digite a key aqui... (CYDEX01)"
+keyInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+keyInput.Text = ""
+keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyInput.TextSize = 15
+keyInput.Font = Enum.Font.GothamSemibold
+keyInput.ClearTextOnFocus = false
+keyInput.Parent = inputFrame
+
+-- Botão Verificar
+local verifyBtn = Instance.new("TextButton")
+verifyBtn.Name = "Verify"
+verifyBtn.Size = UDim2.new(1, 0, 0, 45)
+verifyBtn.Position = UDim2.new(0, 0, 0, 105)
+verifyBtn.BackgroundColor3 = Color3.fromRGB(139, 92, 246)
+verifyBtn.Text = "VERIFICAR KEY"
+verifyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+verifyBtn.TextSize = 16
+verifyBtn.Font = Enum.Font.GothamBold
+verifyBtn.Parent = content
+
+local verifyCorner = Instance.new("UICorner")
+verifyCorner.CornerRadius = UDim.new(0, 10)
+verifyCorner.Parent = verifyBtn
+
+-- Botão Discord
+local discordBtn = Instance.new("TextButton")
+discordBtn.Name = "Discord"
+discordBtn.Size = UDim2.new(0.48, 0, 0, 40)
+discordBtn.Position = UDim2.new(0, 0, 0, 160)
+discordBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+discordBtn.Text = "📋 Copiar Discord"
+discordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+discordBtn.TextSize = 14
+discordBtn.Font = Enum.Font.GothamSemibold
+discordBtn.Parent = content
+
+local discordCorner = Instance.new("UICorner")
+discordCorner.CornerRadius = UDim.new(0, 8)
+discordCorner.Parent = discordBtn
+
+-- Status label
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "Status"
+statusLabel.Size = UDim2.new(1, 0, 0, 25)
+statusLabel.Position = UDim2.new(0, 0, 0, 210)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = ""
+statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+statusLabel.TextSize = 13
+statusLabel.Font = Enum.Font.GothamSemibold
+statusLabel.Parent = content
+
+-- [ SISTEMA DE ARRASTAR ] --
+local dragging = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
+
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+
+        -- Efeito de escala ao clicar
+        TweenService:Create(mainFrame, TweenInfo.new(0.1), {Size = UDim2.new(0, 415, 0, 275)}):Play()
+    end
+end)
+
+header.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+        TweenService:Create(mainFrame, TweenInfo.new(0.1), {Size = UDim2.new(0, 420, 0, 280)}):Play()
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- [ ANIMAÇÕES ] --
+-- Animação de entrada
+mainFrame.Size = UDim2.new(0, 0, 0, 0)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+
+TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 420, 0, 280),
+    Position = UDim2.new(0.5, -210, 0.5, -140)
+}):Play()
+
+-- Hover effects
+local function addHoverEffect(button, normalColor, hoverColor)
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play()
+    end)
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = normalColor}):Play()
+    end)
+end
+
+addHoverEffect(verifyBtn, Color3.fromRGB(139, 92, 246), Color3.fromRGB(167, 139, 250))
+addHoverEffect(discordBtn, Color3.fromRGB(88, 101, 242), Color3.fromRGB(110, 130, 255))
+addHoverEffect(closeBtn, Color3.fromRGB(220, 50, 50), Color3.fromRGB(255, 70, 70))
+
+-- Focus effect no input
+keyInput.Focused:Connect(function()
+    TweenService:Create(inputStroke, TweenInfo.new(0.2), {Transparency = 0, Color = Color3.fromRGB(167, 139, 250)}):Play()
+end)
+
+keyInput.FocusLost:Connect(function()
+    TweenService:Create(inputStroke, TweenInfo.new(0.2), {Transparency = 0.5, Color = Color3.fromRGB(139, 92, 246)}):Play()
+end)
+
+-- [ FUNÇÕES DOS BOTÕES ] --
+
+-- Fechar
+closeBtn.MouseButton1Click:Connect(function()
+    TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0)
+    }):Play()
+    wait(0.3)
+    screenGui:Destroy()
+end)
+
+-- Copiar Discord
+discordBtn.MouseButton1Click:Connect(function()
+    setclipboard(DISCORD_LINK)
+    statusLabel.Text = "✅ Link do Discord copiado!"
+    statusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
+
+    -- Animação do botão
+    TweenService:Create(discordBtn, TweenInfo.new(0.1), {Size = UDim2.new(0.46, 0, 0, 38)}):Play()
+    wait(0.1)
+    TweenService:Create(discordBtn, TweenInfo.new(0.1), {Size = UDim2.new(0.48, 0, 0, 40)}):Play()
+
+    wait(2)
+    if statusLabel then
+        statusLabel.Text = ""
+    end
+end)
+
+-- Verificar Key
+verifyBtn.MouseButton1Click:Connect(function()
+    local enteredKey = keyInput.Text:gsub("%s", "") -- Remove espaços
+
+    if enteredKey == "" then
+        statusLabel.Text = "⚠️ Digite uma key primeiro!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+
+        -- Shake effect
+        local originalPos = inputFrame.Position
+        for i = 1, 5 do
+            inputFrame.Position = originalPos + UDim2.new(0, (i % 2 == 0 and 5 or -5), 0, 0)
+            wait(0.03)
+        end
+        inputFrame.Position = originalPos
+        return
+    end
+
+    if enteredKey == CORRECT_KEY then
+        -- Key correta!
+        statusLabel.Text = "✅ Key verificada! Carregando..."
+        statusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
+
+        -- Animação de sucesso
+        TweenService:Create(mainFrame, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(40, 60, 40)}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.3), {Color = Color3.fromRGB(50, 255, 100)}):Play()
+
+        wait(1)
+
+        -- Fechar UI com animação
+        TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            Rotation = 360
+        }):Play()
+
+        wait(0.4)
+        screenGui:Destroy()
+
+        -- CARREGAR WINDUI COM FUNÇÕES
+        LoadWindUI()
+    else
+        -- Key incorreta
+        statusLabel.Text = "❌ Key incorreta! Tente novamente."
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+
+        -- Shake effect
+        local originalPos = inputFrame.Position
+        for i = 1, 8 do
+            inputFrame.Position = originalPos + UDim2.new(0, (i % 2 == 0 and 8 or -8), 0, 0)
+            wait(0.03)
+        end
+        inputFrame.Position = originalPos
+
+        -- Reset após 2 segundos
+        wait(2)
+        if statusLabel then
+            statusLabel.Text = ""
+        end
+    end
+end)
+
+-- [ FUNÇÃO PRINCIPAL WINDUI ] --
+function LoadWindUI()
+    -- Carregar WindUI
+    local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+    -- Variáveis de controle
+    local lp = game.Players.LocalPlayer
+    local Circle = Drawing.new("Circle") 
+    local Tracers = {}
+    _G.InfJump = false
+    _G.LockAssassino = false
+    _G.TracersVisible = false
+    _G.ESPVisible = false
+    _G.AntiAFK = true
+    _G.HB = false
+    _G.KillAuraCircle = false
+
+    -- Configs do círculo
+    Circle.Visible = false
+    Circle.Radius = 280 
+    Circle.Thickness = 0.3
+    Circle.Color = Color3.fromRGB(139, 92, 246)
+    Circle.Filled = true
+    Circle.Transparency = 0.5
+
+    -- Função de tracers
+    local function CreateTracer(player)
+        if player == lp then return end 
+        local line = Drawing.new("Line")
+        line.Visible = false
+        line.Color = Color3.fromRGB(139, 92, 246)
+        line.Thickness = 1.5
+        Tracers[player] = line
+    end
+
+    local function RemoveTracer(player)
+        if Tracers[player] then
+            Tracers[player].Visible = false
+            Tracers[player]:Remove()
+            Tracers[player] = nil
+        end
+    end
+
+    for _, v in pairs(game.Players:GetPlayers()) do CreateTracer(v) end
+    game.Players.PlayerAdded:Connect(CreateTracer)
+    game.Players.PlayerRemoving:Connect(RemoveTracer)
+
+    -- Pulo infinito
+    game:GetService("UserInputService").JumpRequest:Connect(function()
+        if _G.InfJump and lp.Character and lp.Character:FindFirstChildOfClass("Humanoid") then
+            lp.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+        end
+    end)
+
+    -- Loop principal
+    game:GetService("RunService").RenderStepped:Connect(function()
+        local camSize = workspace.CurrentCamera.ViewportSize
+        Circle.Position = Vector2.new(camSize.X / 2, camSize.Y / 2)
+
+        local char = lp.Character
+        local knife = char and char:FindFirstChild("Knife")
+        local gun = char and char:FindFirstChild("Gun")
+
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= lp and p.Character then
+                -- ESP
+                local highlight = p.Character:FindFirstChild("CydexHighlight")
+                if _G.ESPVisible then
+                    if not highlight then
+                        highlight = Instance.new("Highlight", p.Character)
+                        highlight.Name = "CydexHighlight"
+                    end
+                    highlight.Enabled = true
+                    if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    elseif p.Backpack:FindFirstChild("Gun") or p.Character:FindFirstChild("Gun") then
+                        highlight.FillColor = Color3.fromRGB(0, 0, 255)
+                    else
+                        highlight.FillColor = Color3.fromRGB(255, 255, 255)
+                    end
+                elseif highlight then 
+                    highlight.Enabled = false 
+                end
+
+                -- Hitbox
+                if _G.HB and p.Character:FindFirstChild("HumanoidRootPart") then
+                    p.Character.HumanoidRootPart.Size = Vector3.new(27, 27, 27)
+                    p.Character.HumanoidRootPart.Transparency = 1
+                    p.Character.HumanoidRootPart.CanCollide = false
+                end
+
+                -- Tracers
+                local line = Tracers[p]
+                if line then
+                    if _G.TracersVisible and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local loc, onScreen = workspace.CurrentCamera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                        if onScreen then
+                            line.From = Vector2.new(camSize.X / 2, camSize.Y - 10)
+                            line.To = Vector2.new(loc.X, loc.Y)
+                            line.Visible = true
+                        else 
+                            line.Visible = false 
+                        end
+                    else 
+                        line.Visible = false 
+                    end
+                end
+
+                -- Kill Aura Circle
+                if _G.KillAuraCircle and knife and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                    if onScreen then
+                        local dist = (Vector2.new(pos.X, pos.Y) - Circle.Position).Magnitude
+                        if dist <= Circle.Radius then
+                            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, p.Character.HumanoidRootPart.Position)
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Lock no assassino
+        if _G.LockAssassino and gun then
+            for _, p in pairs(game.Players:GetPlayers()) do
+                if p ~= lp and p.Character and (p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife")) then
+                    workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, p.Character.UpperTorso.Position)
+                end
+            end
+        end
+    end)
+
+    -- Criar janela WindUI
+    local Window = WindUI:CreateWindow({
+        Title = "SCRIPT MM2 OP (Ator)",
+        Author = "by Gemini AI",
+        Folder = "CydexMM2",
+        Size = UDim2.fromOffset(550, 400),
+        Transparent = true,
+        Theme = "Dark",
+        Resizable = true,
+        SideBarWidth = 200,
+    })
+
+    -- Aplicar tema com pcall
+    task.delay(1, function()
+        local success = pcall(function()
+            WindUI:AddTheme({
+                Name = "PurpleTheme",
+                Accent = Color3.fromHex("#8b5cf6"),
+                Dialog = Color3.fromHex("#6d28d9"),
+                Outline = Color3.fromHex("#a78bfa"),
+                Text = Color3.fromHex("#ffffff"),
+                Placeholder = Color3.fromHex("#c4b5fd"),
+                Button = Color3.fromHex("#7c3aed"),
+                Icon = Color3.fromHex("#a78bfa"),
+                WindowBackground = Color3.fromHex("#4c1d95"),
+                TopbarButtonIcon = Color3.fromHex("#a78bfa"),
+                TopbarTitle = Color3.fromHex("#ffffff"),
+                TopbarAuthor = Color3.fromHex("#ffffff"),
+                TopbarIcon = Color3.fromHex("#8b5cf6"),
+                TabBackground = Color3.fromHex("#5b21b6"),
+                TabTitle = Color3.fromHex("#ffffff"),
+                TabIcon = Color3.fromHex("#a78bfa"),
+                ElementBackground = Color3.fromHex("#7c3aed"),
+                ElementTitle = Color3.fromHex("#ffffff"),
+                ElementDesc = Color3.fromHex("#ffffff"),
+                ElementIcon = Color3.fromHex("#a78bfa"),
+            })
+            WindUI:SetTheme("PurpleTheme")
+        end)
+
+        if not success then
+            warn("[CYDEX] Erro ao aplicar tema")
+        end
+    end)
+
+    -- Abas
+    local HomeTab = Window:Tab({Title = "Home", Icon = "info"})
+    local TrollTab = Window:Tab({Title = "Troll & Combat", Icon = "sword"})
+    local AntiTab = Window:Tab({Title = "Sistema Anti", Icon = "shield"})
+    local LagTab = Window:Tab({Title = "Anti-Lag", Icon = "zap"})
+    local InfoTab = Window:Tab({Title = "Informações", Icon = "info"})
+
+    -- Home
+    HomeTab:Image({
+        Name = "Logo",
+        Image = "rbxassetid://81424275303971",
+        Size = UDim2.new(1, -20, 0, 200),
+        Position = UDim2.new(0, 10, 0, 10),
+    })
+    HomeTab:Paragraph({
+        Title = "Bem-vindo ao SCRIPT MM2 OP",
+        Desc = "Use as abas laterais para acessar as funcionalidades."
+    })
+
+    -- Troll & Combat
+    TrollTab:Toggle({
+        Title = "Kill Aura no Círculo",
+        Value = false,
+        Callback = function(Value) _G.KillAuraCircle = Value end
+    })
+    TrollTab:Toggle({
+        Title = "Círculo de Mira (280)",
+        Value = false,
+        Callback = function(Value) Circle.Visible = Value end
+    })
+    TrollTab:Toggle({
+        Title = "Lock no Assassino (Com Arma)",
+        Value = false,
+        Callback = function(Value) _G.LockAssassino = Value end
+    })
+    TrollTab:Toggle({
+        Title = "Hitbox Gigante Invisível",
+        Value = false,
+        Callback = function(Value) _G.HB = Value end
+    })
+    TrollTab:Toggle({
+        Title = "ESP Colorido (V/A/B)",
+        Value = false,
+        Callback = function(Value) _G.ESPVisible = Value end
+    })
+    TrollTab:Toggle({
+        Title = "Linha Branca (Tracers)",
+        Value = false,
+        Callback = function(Value) _G.TracersVisible = Value end
+    })
+    TrollTab:Toggle({
+        Title = "Ativar Velocidade (25)",
+        Value = false,
+        Callback = function(Value) 
+            if lp.Character then 
+                lp.Character.Humanoid.WalkSpeed = Value and 25 or 16 
+            end 
+        end
+    })
+    TrollTab:Toggle({
+        Title = "Pulo Infinito",
+        Value = false,
+        Callback = function(Value) _G.InfJump = Value end
+    })
+
+    -- Sistema Anti
+    AntiTab:Toggle({
+        Title = "Anti-Denúncia & Ban",
+        Value = true,
+        Callback = function() end
+    })
+    AntiTab:Toggle({
+        Title = "Anti-Aviso 267",
+        Value = true,
+        Callback = function() end
+    })
+    AntiTab:Toggle({
+        Title = "Anti-Script Potente",
+        Value = true,
+        Callback = function() end
+    })
+    AntiTab:Toggle({
+        Title = "Anti-AFK",
+        Value = true,
+        Callback = function(Value) _G.AntiAFK = Value end
+    })
+
+    -- Anti-Lag
+    LagTab:Toggle({
+        Title = "Remover Travamentos (Mobile)",
+        Value = false,
+        Callback = function(Value) 
+            if Value then 
+                settings().Rendering.QualityLevel = 1 
+            end 
+        end
+    })
+    LagTab:Toggle({
+        Title = "Anti-Delay (Tela Rápida)",
+        Value = false,
+        Callback = function(Value) 
+            if Value then 
+                setfpscap(120)
+            end 
+        end
+    })
+    LagTab:Toggle({
+        Title = "Visual Liso (Gráfico Baixo)",
+        Value = false,
+        Callback = function(Value) 
+            if Value then 
+                for _, v in pairs(workspace:GetDescendants()) do 
+                    if v:IsA("Part") then 
+                        v.Material = Enum.Material.SmoothPlastic 
+                    end 
+                end 
+            end 
+        end
+    })
+
+    -- Informações
+    InfoTab:Paragraph({
+        Title = "Siga minhas redes sociais:",
+        Desc = ""
+    })
+    InfoTab:Button({
+        Title = "Instagram: @guii_ntx4",
+        Callback = function() 
+            setclipboard("https://www.instagram.com/guii_ntx4") 
+        end
+    })
+    InfoTab:Button({
+        Title = "TikTok: @cydex_player01",
+        Callback = function() 
+            setclipboard("https://tiktok.com/@cydex_player01") 
+        end
+    })
+    InfoTab:Button({
+        Title = "YouTube: @CYDEX_PLAYER01",
+        Callback = function() 
+            setclipboard("https://www.youtube.com/@CYDEX_PLAYER01") 
+        end
+    })
+    InfoTab:Button({
+        Title = "Discord: Comunidade CYDEX",
+        Callback = function() 
+            setclipboard("https://discord.gg/JC557E9wb") 
+        end
+    })
+    InfoTab:Divider()
+    InfoTab:Button({
+        Title = "Copiar Pix: 75998028836",
+        Callback = function() 
+            setclipboard("75998028836")
+            WindUI:Notify({
+                Title = "Sucesso",
+                Content = "Chave Pix copiada!",
+                Duration = 3
+            })
+        end
+    })
+end

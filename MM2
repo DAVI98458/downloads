@@ -1,4 +1,4 @@
--- By shadown_gd
+-- By shadown_gd.
 
 local Ww,Xb,Ow,qB,gb,Zo=getmetatable,pairs,bit32.bxor,type
 local fh,_d,eq,As,T,GB,kl,Cr,xc,sG,Ig,nu,zq,Si,yc,Mb,jx,Ie,vf,U,vy,Ho,pu,Hr,vl;

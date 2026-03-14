@@ -142,7 +142,7 @@ keyInput.Name = "KeyInput"
 keyInput.Size = UDim2.new(1, -20, 1, 0)
 keyInput.Position = UDim2.new(0, 10, 0, 0)
 keyInput.BackgroundTransparency = 1
-keyInput.PlaceholderText = "Digite a key aqui... (CYDEX01)"
+keyInput.PlaceholderText = "Digite a key aqui"
 keyInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
 keyInput.Text = ""
 keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -337,7 +337,7 @@ function LoadWindUI()
 
     -- [ CÍRCULO VERMELHO - SÓ BORDA, SEM FILL ] --
     Circle.Visible = false
-    Circle.Radius = 280 
+    Circle.Radius = 270 
     Circle.Thickness = 1.5  -- Borda mais grossa pra destacar
     Circle.Color = Color3.fromRGB(255, 0, 0)  -- VERMELHO PURO
     Circle.Filled = false   -- SEM FILL - só a borda!
@@ -391,8 +391,8 @@ function LoadWindUI()
                         highlight.Name = "CydexHighlight"
                     end
                     highlight.Enabled = true
-                    highlight.OutlineTransparency = 0.3  -- Outline no 0.3
-                    highlight.FillTransparency = 0       -- Fill no 0 (totalmente preenchido)
+                    highlight.OutlineTransparency = 0.2  -- Outline no 0.3
+                    highlight.FillTransparency = 1       -- Fill no 0 (totalmente preenchido)
 
                     -- Verificar se tem faca ou gun primeiro
                     local hasKnife = p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife")
@@ -462,7 +462,7 @@ function LoadWindUI()
     -- Criar janela WindUI
     local Window = WindUI:CreateWindow({
         Title = "SCRIPT MM2 OP (Ator)",
-        Author = "by Gemini AI",
+        Author = "by Shadown_gd and guii_ntx7",
         Folder = "CydexMM2",
         Size = UDim2.fromOffset(550, 400),
         Transparent = true,

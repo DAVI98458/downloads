@@ -142,7 +142,7 @@ keyInput.Name = "KeyInput"
 keyInput.Size = UDim2.new(1, -20, 1, 0)
 keyInput.Position = UDim2.new(0, 10, 0, 0)
 keyInput.BackgroundTransparency = 1
-keyInput.PlaceholderText = "Digite a key aqui... (CYDEX01)"
+keyInput.PlaceholderText = "Digite a key aqui"
 keyInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
 keyInput.Text = ""
 keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -392,7 +392,7 @@ function LoadWindUI()
                     end
                     highlight.Enabled = true
                     highlight.OutlineTransparency = 0.3  -- Outline no 0.3
-                    highlight.FillTransparency = 0       -- Fill no 0 (totalmente preenchido)
+                    highlight.FillTransparency = 1       -- Fill no 0 (totalmente preenchido)
 
                     -- Verificar se tem faca ou gun primeiro
                     local hasKnife = p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife")

@@ -20,31 +20,6 @@ local Window = WindUI:CreateWindow({
 
 Window:Tag({ Title = "V3", Icon = "gamepad-2", Color = Color3.fromHex("#60a5fa") })
 
-task.delay(1, function()
-    WindUI:AddTheme({
-        Name = "BlueTheme",
-        Accent = Color3.fromHex("#3b82f6"),
-        Dialog = Color3.fromHex("#1e40af"),
-        Outline = Color3.fromHex("#60a5fa"),
-        Text = Color3.fromHex("#ffffff"),
-        Placeholder = Color3.fromHex("#93c5fd"),
-        Button = Color3.fromHex("#7c3aed"),
-        Icon = Color3.fromHex("#60a5fa"),
-        WindowBackground = Color3.fromHex("#1e3a8a"),
-        TopbarButtonIcon = Color3.fromHex("#60a5fa"),
-        TopbarTitle = Color3.fromHex("#ffffff"),
-        TopbarAuthor = Color3.fromHex("#ffffff"),
-        TopbarIcon = Color3.fromHex("#3b82f6"),
-        TabBackground = Color3.fromHex("#1e40af"),
-        TabTitle = Color3.fromHex("#ffffff"),
-        TabIcon = Color3.fromHex("#60a5fa"),
-        ElementBackground = Color3.fromHex("#2563eb"),
-        ElementTitle = Color3.fromHex("#ffffff"),
-        ElementDesc = Color3.fromHex("#ffffff"),
-        ElementIcon = Color3.fromHex("#60a5fa"),
-    })
-    WindUI:SetTheme("BlueTheme")
-end)
 
 local AnimFolder = workspace.Game.Animatronics.Animatronics
 local Foxy = AnimFolder:WaitForChild("Foxy")

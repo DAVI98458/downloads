@@ -388,6 +388,143 @@ AutoTab:Button({ Title = "Turn Generator On/Off", Desc = "Toggles generator", Ic
     WindUI:Notify({ Title = "Success", Content = "Generator toggled" })
 end })
 
+-- Variáveis de controle
+local selectedFuseMode = "security room"
+
+-- Dropdown pra selecionar modo
+AutoTab:Dropdown({
+    Title = "Select Fuse Location",
+    Desc = "Choose where to insert the fuse",
+    Values = {"security room", "back room", "Puppet's energy"},
+    Value = "security room",
+    Callback = function(v)
+        selectedFuseMode = v
+    end
+})
+
+AutoTab:Space()
+
+-- Botão Insert Fuse
+AutoTab:Button({
+    Title = "Insert Fuse",
+    Desc = "Teleports and inserts fuse at selected location",
+    Icon = "zap",
+    Color = Color3.fromHex("#f59e0b"),
+    Callback = function()
+        local hrp = getHRP()
+        if not hrp then
+            WindUI:Notify({ Title = "Error", Content = "Character not found!" })
+            return
+        end
+        
+        local oldCF = hrp.CFrame
+        local hasFuse = false
+        local equippedFuse = nil
+        
+        -- Método 1: Verifica no Character (já equipado)
+        for _,item in ipairs(LP.Character:GetDescendants()) do
+            if item.Name == "Fuse" and (item:IsA("Tool") or item:IsA("Model")) then
+                hasFuse = true
+                equippedFuse = item
+                break
+            end
+        end
+        
+        -- Método 2: Verifica no Backpack e equipa
+        if not hasFuse and LP:FindFirstChild("Backpack") then
+            for _,item in ipairs(LP.Backpack:GetDescendants()) do
+                if item.Name == "Fuse" and (item:IsA("Tool") or item:IsA("Model")) then
+                    -- Tenta equipar
+                    pcall(function()
+                        item.Parent = LP.Character
+                    end)
+                    
+                    -- Verifica se equipou
+                    task.wait(0.1)
+                    for _,charItem in ipairs(LP.Character:GetDescendants()) do
+                        if charItem.Name == "Fuse" and (charItem:IsA("Tool") or charItem:IsA("Model")) then
+                            hasFuse = true
+                            equippedFuse = charItem
+                            break
+                        end
+                    end
+                    break
+                end
+            end
+        end
+        
+        -- Se não tem fuse, avisa e retorna
+        if not hasFuse then
+            WindUI:Notify({ 
+                Title = "Error", 
+                Content = "There are no fuses in your inventory",
+                Icon = "x-circle"
+            })
+            return
+        end
+        
+        -- Define posição e path baseado no modo selecionado
+        local teleportPos = CFrame.new(-76, 3, 149)
+        local fusePath = nil
+        
+        if selectedFuseMode == "security room" then
+            fusePath = workspace.Game.Sistema.Gerador.Fusiveis.Body.Fusivel2
+        elseif selectedFuseMode == "back room" then
+            fusePath = workspace.Game.Sistema.Gerador.Fusiveis.Body.Fusivel3
+        elseif selectedFuseMode == "Puppet's energy" then
+            fusePath = workspace.Game.Sistema.Gerador.Fusiveis.Body.Fusivel1
+        end
+        
+        -- Verifica se o path existe
+        if not fusePath then
+            WindUI:Notify({ Title = "Error", Content = "Fuse slot not found!" })
+            return
+        end
+        
+        -- Teleporta pra posição
+        hrp.CFrame = teleportPos
+        task.wait(0.2)
+        
+        -- Procura o ProximityPrompt no path
+        local prompt = fusePath:FindFirstChildWhichIsA("ProximityPrompt", true)
+        
+        if prompt then
+            fireproximityprompt(prompt)
+            task.wait(0.2)
+            WindUI:Notify({ 
+                Title = "Success", 
+                Content = "Fuse inserted at " .. selectedFuseMode .. "!"
+            })
+        else
+            WindUI:Notify({ Title = "Error", Content = "ProximityPrompt not found!" })
+        end
+        
+        -- Volta pra posição original
+        task.wait(0.1)
+        hrp.CFrame = oldCF
+        
+        -- Aviso final
+        WindUI:Notify({ 
+            Title = "Note", 
+            Content = "In case you don't have a fuse in your inventory or anyone to make it work",
+            Icon = "info",
+            Duration = 3
+        })
+    end
+})
+
+AutoTab:Space()
+
+-- Aviso abaixo do botão
+AutoTab:Paragraph({
+    Title = "Important Note",
+    Desc = "In case you don't have a fuse in your inventory or anyone to make it work",
+    Image = "",
+    Thumbnail = "",
+    ImageSize = 0,
+    Buttons = {}
+})
+
 -- CORRIGIDO - Teleporta até o ProximityPrompt do Fuse (Apenas Raiz do Workspace)
 GrabTab:Button({ 
     Title = "Grab Fuse", 

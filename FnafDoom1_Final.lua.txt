@@ -1,0 +1,504 @@
+----------------------------------------------------------------
+-- LOAD WINDUI (URL CORRIGIDA)
+----------------------------------------------------------------
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+----------------------------------------------------------------
+-- WINDOW
+----------------------------------------------------------------
+local Window = WindUI:CreateWindow({
+    Title = "Fnaf Doom 1 Beta",
+    Icon = "users",
+    Author = "By: abyssnt",
+    Size = UDim2.fromOffset(600, 400),
+    Transparent = true,
+    Theme = "Dark",
+    SideBarWidth = 200,
+    HasOutline = false
+})
+
+----------------------------------------------------------------
+-- TABS
+----------------------------------------------------------------
+local MainTab = Window:Tab({
+    Title = "Main",
+    Icon = "menu",
+})
+
+local AutoTab = Window:Tab({
+    Title = "Automatic",
+    Icon = "zap",
+})
+
+local ESPTab = Window:Tab({
+    Title = "ESP",
+    Icon = "eye",
+})
+
+local TrollTab = Window:Tab({
+    Title = "Troll",
+    Icon = "users",
+})
+
+----------------------------------------------------------------
+-- SERVICES
+----------------------------------------------------------------
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+
+----------------------------------------------------------------
+-- FLAGS
+----------------------------------------------------------------
+local autoGeneratorEnabled = false
+local safeZone1Enabled = false
+local highlightAnimatronicsEnabled = false
+local highlightPlayerEnabled = false
+local autoDoorsEnabled = false
+local generatorBusy = false
+
+----------------------------------------------------------------
+-- CONSTANTS
+----------------------------------------------------------------
+local TELEPORT_DELAY = 0.2
+local DETECT_DISTANCE = 24
+local DOOR_COOLDOWN = 1
+
+local GERADOR_POSITION = CFrame.new(200, 4, -75)
+local SAFEZONE1_FINAL = CFrame.new(111, 4, -183)
+local SAFEZONE_TP = CFrame.new(94, 14, -163)
+local BUG_ANIMATRONICS_TP = CFrame.new(38, 7, -60)
+
+local DOOR1_TP = CFrame.new(152, 4, -52)
+local DOOR2_TP = CFrame.new(152, 4, -79)
+
+----------------------------------------------------------------
+-- SAFE ZONE 1
+----------------------------------------------------------------
+local function executarSafeZone1()
+    if not safeZone1Enabled then return end
+
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    local Buttons = workspace.Game.Buttons
+    local doors = { Buttons.Door3, Buttons.Door4, Buttons.Door5, Buttons.Door6 }
+
+    for _, door in ipairs(doors) do
+        local part = door:FindFirstChildWhichIsA("BasePart", true)
+        local prompt = door:FindFirstChildWhichIsA("ProximityPrompt", true)
+        if part and prompt then
+            hrp.CFrame = part.CFrame + Vector3.new(0,3,0)
+            task.wait(TELEPORT_DELAY)
+            fireproximityprompt(prompt)
+        end
+    end
+
+    hrp.CFrame = SAFEZONE1_FINAL
+end
+
+----------------------------------------------------------------
+-- AUTO GENERATOR (TOGGLE VERSION)
+----------------------------------------------------------------
+local generatorConnection = nil
+
+local function executarGerador(key, prompt)
+    if not autoGeneratorEnabled or generatorBusy then return end
+    generatorBusy = true
+
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local original = hrp.CFrame
+
+    hrp.CFrame = key.CFrame + Vector3.new(0,3,0)
+    task.wait(TELEPORT_DELAY)
+
+    hrp.CFrame = GERADOR_POSITION
+    task.wait(TELEPORT_DELAY)
+    fireproximityprompt(prompt)
+    task.wait(TELEPORT_DELAY)
+
+    if safeZone1Enabled then
+        executarSafeZone1()
+    else
+        hrp.CFrame = original
+    end
+
+    generatorBusy = false
+end
+
+local function iniciarAutoGenerator()
+    local g = workspace.Game.Gerador
+    local prompt = g.ReligarGerador:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if not prompt then return end
+
+    if g:FindFirstChild("Key") then
+        executarGerador(g.Key, prompt)
+    end
+
+    generatorConnection = g.ChildAdded:Connect(function(c)
+        if c.Name == "Key" and autoGeneratorEnabled then
+            task.wait(0.1)
+            executarGerador(c, prompt)
+        end
+    end)
+end
+
+local function pararAutoGenerator()
+    if generatorConnection then
+        generatorConnection:Disconnect()
+        generatorConnection = nil
+    end
+end
+
+----------------------------------------------------------------
+-- HIGHLIGHT ANIMATRONICS (VERMELHO - Fill=1, Outline=0.3)
+----------------------------------------------------------------
+local animatronicHighlights = {}
+
+local function aplicarHighlightsAnimatronics()
+    local animFolder = workspace.Game.Animatronics.Animatronics
+    local targetAnimatronics = { "Freddy", "Foxy", "Chica", "Bonnie" }
+
+    for _, nome in ipairs(targetAnimatronics) do
+        local anim = animFolder:FindFirstChild(nome)
+        if anim and not animatronicHighlights[anim] then
+            local h = Instance.new("Highlight")
+            h.Adornee = anim
+            h.FillColor = Color3.fromRGB(255, 0, 0)
+            h.OutlineColor = Color3.fromRGB(255, 0, 0)
+            h.FillTransparency = 1
+            h.OutlineTransparency = 0.3
+            h.Parent = anim
+            animatronicHighlights[anim] = h
+        end
+    end
+end
+
+local function removerHighlightsAnimatronics()
+    for _, h in pairs(animatronicHighlights) do
+        if h then h:Destroy() end
+    end
+    table.clear(animatronicHighlights)
+end
+
+----------------------------------------------------------------
+-- HIGHLIGHT PLAYERS (VERDE - Fill=1, Outline=0.3)
+----------------------------------------------------------------
+local playerHighlights = {}
+local playerAddedConnection = nil
+local playerRemovingConnection = nil
+
+local function aplicarHighlightsPlayers()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player then
+            local char = p.Character
+            if char and not playerHighlights[p] then
+                local h = Instance.new("Highlight")
+                h.Adornee = char
+                h.FillColor = Color3.fromRGB(0, 255, 0)
+                h.OutlineColor = Color3.fromRGB(0, 255, 0)
+                h.FillTransparency = 1
+                h.OutlineTransparency = 0.3
+                h.Parent = char
+                playerHighlights[p] = h
+            end
+        end
+    end
+end
+
+local function removerHighlightsPlayers()
+    for _, h in pairs(playerHighlights) do
+        if h then h:Destroy() end
+    end
+    table.clear(playerHighlights)
+end
+
+local function iniciarPlayerESP()
+    aplicarHighlightsPlayers()
+
+    playerAddedConnection = Players.PlayerAdded:Connect(function(p)
+        if highlightPlayerEnabled and p ~= player then
+            p.CharacterAdded:Connect(function(char)
+                if highlightPlayerEnabled then
+                    task.wait(0.5)
+                    if not playerHighlights[p] then
+                        local h = Instance.new("Highlight")
+                        h.Adornee = char
+                        h.FillColor = Color3.fromRGB(0, 255, 0)
+                        h.OutlineColor = Color3.fromRGB(0, 255, 0)
+                        h.FillTransparency = 1
+                        h.OutlineTransparency = 0.3
+                        h.Parent = char
+                        playerHighlights[p] = h
+                    end
+                end
+            end)
+        end
+    end)
+
+    playerRemovingConnection = Players.PlayerRemoving:Connect(function(p)
+        if playerHighlights[p] then
+            playerHighlights[p]:Destroy()
+            playerHighlights[p] = nil
+        end
+    end)
+end
+
+local function pararPlayerESP()
+    removerHighlightsPlayers()
+    if playerAddedConnection then
+        playerAddedConnection:Disconnect()
+        playerAddedConnection = nil
+    end
+    if playerRemovingConnection then
+        playerRemovingConnection:Disconnect()
+        playerRemovingConnection = nil
+    end
+end
+
+----------------------------------------------------------------
+-- AUTO CLOSE DOORS (ORIGINAL - SEM TASK.WAIT NO HEARTBEAT)
+----------------------------------------------------------------
+local doorState = {
+    Door1 = { cooldown = 0, busy = false },
+    Door2 = { cooldown = 0, busy = false }
+}
+
+local function processDoor(doorNum, doorPart, doorPrompt, doorOpen, doorTime, doorTp, state)
+    if state.busy or tick() < state.cooldown then return end
+
+    if doorTime.Value == true then
+        return
+    end
+
+    local animFolder = workspace.Game.Animatronics.Animatronics
+    local inside = false
+
+    for _, obj in ipairs(animFolder:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            if (obj.Position - doorPart.Position).Magnitude <= DETECT_DISTANCE then 
+                inside = true 
+                break
+            end
+        end
+    end
+
+    if inside ~= doorOpen.Value then
+        state.busy = true
+        state.cooldown = tick() + DOOR_COOLDOWN
+
+        local char = player.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local original = hrp.CFrame
+                hrp.CFrame = doorTp
+                task.wait(TELEPORT_DELAY)
+                fireproximityprompt(doorPrompt)
+                hrp.CFrame = original
+            end
+        end
+
+        state.busy = false
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if not autoDoorsEnabled or generatorBusy then return end
+
+    local Buttons = workspace.Game.Buttons
+    local char = player.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local door1Part = Buttons.Door1:FindFirstChildWhichIsA("BasePart", true)
+    local door1Prompt = Buttons.Door1:FindFirstChildWhichIsA("ProximityPrompt", true)
+    local door1Open = Buttons.Door1.Configurators.Open
+    local door1Time = Buttons.Door1.Configurators.Time
+
+    local door2Part = Buttons.Door2:FindFirstChildWhichIsA("BasePart", true)
+    local door2Prompt = Buttons.Door2:FindFirstChildWhichIsA("ProximityPrompt", true)
+    local door2Open = Buttons.Door2.Configurators.Open
+    local door2Time = Buttons.Door2.Configurators.Time
+
+    if door1Part and door1Prompt then
+        processDoor(1, door1Part, door1Prompt, door1Open, door1Time, DOOR1_TP, doorState.Door1)
+    end
+
+    if door2Part and door2Prompt then
+        processDoor(2, door2Part, door2Prompt, door2Open, door2Time, DOOR2_TP, doorState.Door2)
+    end
+end)
+
+----------------------------------------------------------------
+-- MAIN TAB UI
+----------------------------------------------------------------
+MainTab:Paragraph({
+    Title = "Warning",
+    Desc = "For the safe zone to function, there cannot be any animatronics in the bathroom or kitchen"
+})
+
+-- Delete Anti-cheat Barriers Button
+MainTab:Button({
+    Title = "Delete anti-cheat barriers",
+    Desc = "Removes anti-cheat",
+    Callback = function()
+        local barreiras = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Barreiras")
+
+        if barreiras then
+            barreiras:Destroy()
+            WindUI:Notify({
+                Title = "Success",
+                Content = "Anti-cheat barriers have been deleted!",
+                Icon = "check",
+                Duration = 3,
+            })
+        else
+            WindUI:Notify({
+                Title = "Error",
+                Content = "barriers not found!",
+                Icon = "alert-circle",
+                Duration = 3,
+            })
+        end
+    end
+})
+
+-- Generator Battery Percentage Notification Button
+MainTab:Button({
+    Title = "Notification of the generator battery percentage",
+    Desc = "Shows current generator battery percentage",
+    Callback = function()
+        local energiaVal = game:GetService("ReplicatedStorage")
+            :WaitForChild("GameSettings")
+            :WaitForChild("Valores")
+            :WaitForChild("EnergiaVal")
+
+        local percentage = energiaVal.Value
+        WindUI:Notify({
+            Title = "Generator Battery",
+            Content = "The percentage of the generator and " .. tostring(percentage),
+            Icon = "battery",
+            Duration = 2,
+        })
+    end
+})
+
+-- Teleport Safe Zone Button
+MainTab:Button({
+    Title = "Teleport Safe Zone",
+    Desc = "Teleports to safe zone position (94, 14, -163)",
+    Callback = function()
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        hrp.CFrame = SAFEZONE_TP
+    end
+})
+
+-- Bug Animatronics Button
+MainTab:Button({
+    Title = "Bug animatronics",
+    Desc = "Teleports teleport only just sit at a table and stand still",
+    Callback = function()
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        hrp.CFrame = BUG_ANIMATRONICS_TP
+    end
+})
+
+MainTab:Toggle({
+    Title = "Safe zone (50% safe)",
+    Default = false,
+    Callback = function(v)
+        safeZone1Enabled = v
+        if v then executarSafeZone1() end
+    end
+})
+
+----------------------------------------------------------------
+-- AUTO TAB UI
+----------------------------------------------------------------
+AutoTab:Toggle({
+    Title = "Auto generator (OP)",
+    Default = false,
+    Callback = function(v)
+        autoGeneratorEnabled = v
+        if v then
+            iniciarAutoGenerator()
+        else
+            pararAutoGenerator()
+        end
+    end
+})
+
+AutoTab:Toggle({
+    Title = "Auto close Doors security room (OP)",
+    Default = false,
+    Callback = function(v)
+        autoDoorsEnabled = v
+    end
+})
+
+----------------------------------------------------------------
+-- ESP TAB UI
+----------------------------------------------------------------
+ESPTab:Toggle({
+    Title = "Highlight Animatronics",
+    Default = false,
+    Callback = function(v)
+        highlightAnimatronicsEnabled = v
+        if v then aplicarHighlightsAnimatronics() else removerHighlightsAnimatronics() end
+    end
+})
+
+ESPTab:Toggle({
+    Title = "Highlight Player",
+    Default = false,
+    Callback = function(v)
+        highlightPlayerEnabled = v
+        if v then iniciarPlayerESP() else pararPlayerESP() end
+    end
+})
+
+----------------------------------------------------------------
+-- TROLL TAB UI
+----------------------------------------------------------------
+local trollMode = "average"
+
+TrollTab:Paragraph({
+    Title = "Warning",
+    Desc = "This feature significantly impacts mobile gamers, as it will slow down their gameplay"
+})
+
+TrollTab:Dropdown({
+    Title = "Mode",
+    Default = "average",
+    Values = { "average", "low" },
+    Callback = function(v)
+        trollMode = v
+    end
+})
+
+TrollTab:Button({
+    Title = "Lag server",
+    Desc = "Spawns multiple Foxy instances to lag the server, The sv_cheats command must be enabled for this to work",
+    Callback = function()
+        local Event = ReplicatedStorage:WaitForChild("Comandos")
+        if trollMode == "average" then
+            for i = 1, 100 do
+                Event:FireServer("summon foxy")
+                task.wait(0.01)
+            end
+        else
+            for i = 1, 30 do
+                Event:FireServer("summon foxy")
+                task.wait(0.01)
+            end
+        end
+    end
+})

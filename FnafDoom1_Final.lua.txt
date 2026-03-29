@@ -12,7 +12,7 @@ local Window = WindUI:CreateWindow({
     Author = "By: abyssnt",
     Size = UDim2.fromOffset(600, 400),
     Transparent = true,
-    Theme = "Dark",
+    Theme = "Blood",
     SideBarWidth = 200,
     HasOutline = false
 })
@@ -392,7 +392,7 @@ MainTab:Button({
 -- Teleport Safe Zone Button
 MainTab:Button({
     Title = "Teleport Safe Zone",
-    Desc = "Teleports to safe zone position (94, 14, -163)",
+    Desc = "Teleports to safe zone",
     Callback = function()
         local char = player.Character or player.CharacterAdded:Wait()
         local hrp = char:WaitForChild("HumanoidRootPart")
@@ -411,8 +411,8 @@ MainTab:Button({
     end
 })
 
-MainTab:Toggle({
-    Title = "Safe zone (50% safe)",
+AutoTab:Toggle({
+    Title = "Safe zone (50% safe)[If the auto generator is on, it closes the doors automatically, meaning it's completely automatic Xd]",
     Default = false,
     Callback = function(v)
         safeZone1Enabled = v

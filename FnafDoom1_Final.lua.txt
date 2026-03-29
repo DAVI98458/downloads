@@ -411,15 +411,6 @@ MainTab:Button({
     end
 })
 
-AutoTab:Toggle({
-    Title = "Safe zone (50% safe)[If the auto generator is on, it closes the doors automatically, meaning it's completely automatic Xd]",
-    Default = false,
-    Callback = function(v)
-        safeZone1Enabled = v
-        if v then executarSafeZone1() end
-    end
-})
-
 ----------------------------------------------------------------
 -- AUTO TAB UI
 ----------------------------------------------------------------
@@ -441,6 +432,15 @@ AutoTab:Toggle({
     Default = false,
     Callback = function(v)
         autoDoorsEnabled = v
+    end
+})
+
+AutoTab:Toggle({
+    Title = "Safe zone (50% safe)[If the auto generator is on, it closes the doors automatically, meaning it's completely automatic Xd]",
+    Default = false,
+    Callback = function(v)
+        safeZone1Enabled = v
+        if v then executarSafeZone1() end
     end
 })
 

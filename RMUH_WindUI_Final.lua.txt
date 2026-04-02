@@ -1,0 +1,696 @@
+task.wait(0.5)
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/game%20happy",true))()
+end)
+
+----------------------------------------------------------------
+-- LOAD WINDUI
+----------------------------------------------------------------
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+----------------------------------------------------------------
+-- WINDOW
+----------------------------------------------------------------
+local Window = WindUI:CreateWindow({
+    Title = "RMUH ULTIMATE Hub (BETA)",
+    Author = "by: shadown_gd and Juao (authorized modification)",
+    Folder = "RMUH",
+    Size = UDim2.fromOffset(580, 460),
+    Transparent = true,
+    Theme = "Dark"
+})
+
+----------------------------------------------------------------
+-- SERVICES
+----------------------------------------------------------------
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
+local Camera = Workspace.CurrentCamera
+local player = Players.LocalPlayer
+
+----------------------------------------------------------------
+-- GAME STATE
+----------------------------------------------------------------
+local gameState = ReplicatedStorage:WaitForChild("GameState")
+local night = gameState:WaitForChild("Night")
+
+----------------------------------------------------------------
+-- CONFIGURATION BOOLVALUES (ALL FALSE)
+----------------------------------------------------------------
+local configFolder = Instance.new("Configuration")
+configFolder.Name = "RMUH_Config"
+configFolder.Parent = game.ReplicatedFirst
+
+local function Bool(name)
+    local v = Instance.new("BoolValue")
+    v.Name = name
+    v.Value = false
+    v.Parent = configFolder
+    return v
+end
+
+-- Others
+local ClassicCamera   = Bool("ClassicCamera")
+local InfiniteStamina = Bool("InfiniteStamina")
+local FullBright      = Bool("FullBright")
+local EspPlayers      = Bool("EspPlayers")
+
+-- Night 1
+local HighlightLarry  = Bool("HighlightLarry")
+local InfiniteO2      = Bool("InfiniteO2")
+local AutoLight       = Bool("AutoLight")
+local AutoScare       = Bool("AutoScare")
+local EspWeirdDad     = Bool("EspWeirdDad")
+
+-- Misc
+local InfCharges = Bool("InfCharges")
+local DisableColdToggle = Bool("DisableColdToggle")
+
+----------------------------------------------------------------
+-- OTHERS TAB
+----------------------------------------------------------------
+local OthersTab = Window:Tab({ Title = "Others", Icon = "user" })
+
+-- Classic Camera
+OthersTab:Toggle({
+    Title = "Classic Camera Mode",
+    Default = false,
+    Callback = function(value)
+        ClassicCamera.Value = value
+        if value then
+            player.CameraMode = Enum.CameraMode.Classic
+            player.CameraMinZoomDistance = 0.5
+            player.CameraMaxZoomDistance = 128
+        else
+            player.CameraMode = Enum.CameraMode.LockFirstPerson
+            player.CameraMinZoomDistance = 0
+            player.CameraMaxZoomDistance = 0
+        end
+    end
+})
+
+OthersTab:Space()
+
+-- Infinite Stamina
+OthersTab:Toggle({
+    Title = "Infinite Stamina",
+    Default = false,
+    Callback = function(value)
+        InfiniteStamina.Value = value
+        local sprint = player.Character and player.Character:FindFirstChild("Sprint")
+        if sprint then sprint.Overdrive.Value = value and 1e18 or 0 end
+    end
+})
+
+OthersTab:Space()
+
+-- Full Bright
+OthersTab:Toggle({
+    Title = "Full Bright",
+    Default = false,
+    Callback = function(value)
+        FullBright.Value = value
+        if value then
+            Lighting.Ambient = Color3.new(1,1,1)
+            Lighting.OutdoorAmbient = Color3.new(1,1,1)
+            Lighting.Brightness = 2
+            Lighting.GlobalShadows = false
+            Lighting.FogEnd = 1e5
+        else
+            Lighting.Ambient = Color3.fromRGB(128,128,128)
+            Lighting.OutdoorAmbient = Color3.fromRGB(128,128,128)
+            Lighting.Brightness = 1
+            Lighting.GlobalShadows = true
+            Lighting.FogEnd = 1000
+        end
+    end
+})
+
+OthersTab:Space()
+
+-- ESP Players (Highlight)
+OthersTab:Toggle({
+    Title = "ESP Players",
+    Default = false,
+    Callback = function(state)
+        EspPlayers.Value = state
+        if state then
+            local function UpdatePlayersESP()
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= player and plr.Character then
+                        local existingHighlight = plr.Character:FindFirstChild("PlayersESP")
+                        if not existingHighlight then
+                            local highlight = Instance.new("Highlight")
+                            highlight.Name = "PlayersESP"
+                            highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                            highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+                            highlight.FillTransparency = 0
+                            highlight.OutlineTransparency = 0.7
+                            highlight.Parent = plr.Character
+                        end
+                    end
+                end
+            end
+
+            if not _G.PlayersESPConnection then
+                _G.PlayersESPConnection = RunService.RenderStepped:Connect(UpdatePlayersESP)
+            end
+        else
+            if _G.PlayersESPConnection then
+                _G.PlayersESPConnection:Disconnect()
+                _G.PlayersESPConnection = nil
+            end
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr.Character then
+                    local esp = plr.Character:FindFirstChild("PlayersESP")
+                    if esp then esp:Destroy() end
+                end
+            end
+        end
+    end
+})
+
+OthersTab:Space()
+
+-- Disable Cold
+do
+    local conn
+    OthersTab:Toggle({
+        Title = "Disable Cold",
+        Default = false,
+        Callback = function(state)
+            DisableColdToggle.Value = state
+            if conn then conn:Disconnect() conn = nil end
+
+            if not state then return end
+
+            conn = RunService.RenderStepped:Connect(function()
+                local playerFolder = Workspace:FindFirstChild(player.Name)
+                if not playerFolder then return end
+                local temperature = playerFolder:FindFirstChild("Temperature")
+
+                if temperature and temperature:IsA("LocalScript") then
+                    if temperature.Enabled ~= false then
+                        temperature.Enabled = false
+                    end
+                end
+            end)
+        end
+    })
+end
+
+OthersTab:Space()
+
+-- Inf Charges in the Lantern
+do
+    local conn
+    OthersTab:Toggle({
+        Title = "Inf Charges in the Lantern",
+        Default = false,
+        Callback = function(state)
+            InfCharges.Value = state
+            if conn then conn:Disconnect() conn = nil end
+
+            if not state then return end
+
+            conn = RunService.RenderStepped:Connect(function()
+                local char = player.Character
+                if not char then return end
+                local flashlight = char:FindFirstChild("Flashlight")
+                local charges = flashlight and flashlight:FindFirstChild("Charges")
+                if charges and charges.Value ~= math.huge then
+                    charges.Value = math.huge
+                end
+            end)
+        end
+    })
+end
+
+----------------------------------------------------------------
+-- NIGHT 1 TAB
+----------------------------------------------------------------
+local Night1Tab = Window:Tab({ Title = "Night 1", Icon = "home" })
+
+-- ESP Larry (Highlight API)
+Night1Tab:Toggle({
+    Title = "ESP Larry",
+    Default = false,
+    Callback = function(state)
+        HighlightLarry.Value = state
+        if state then
+            local function UpdateLarryESP()
+                local mutant = Workspace:FindFirstChild("Mutant") or ReplicatedStorage:FindFirstChild("Mutant")
+                if mutant then
+                    local existingHighlight = mutant:FindFirstChild("LarryESP")
+                    if not existingHighlight then
+                        local highlight = Instance.new("Highlight")
+                        highlight.Name = "LarryESP"
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                        highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+                        highlight.FillTransparency = 0
+                        highlight.OutlineTransparency = 0.7
+                        highlight.Parent = mutant
+                    end
+                end
+            end
+
+            if not _G.LarryESPConnection then
+                _G.LarryESPConnection = RunService.RenderStepped:Connect(UpdateLarryESP)
+            end
+        else
+            if _G.LarryESPConnection then
+                _G.LarryESPConnection:Disconnect()
+                _G.LarryESPConnection = nil
+            end
+            local mutant = Workspace:FindFirstChild("Mutant") or ReplicatedStorage:FindFirstChild("Mutant")
+            if mutant then
+                local esp = mutant:FindFirstChild("LarryESP")
+                if esp then esp:Destroy() end
+            end
+        end
+    end
+})
+
+Night1Tab:Space()
+
+-- ESP WeirdDad
+Night1Tab:Toggle({
+    Title = "ESP WeirdDad",
+    Default = false,
+    Callback = function(state)
+        EspWeirdDad.Value = state
+        if state then
+            local function UpdateWeirdDadESP()
+                local weirdDad = Workspace:FindFirstChild("WeirdDad") or ReplicatedStorage:FindFirstChild("WeirdDad")
+                if weirdDad then
+                    local existingHighlight = weirdDad:FindFirstChild("WeirdDadESP")
+                    if not existingHighlight then
+                        local highlight = Instance.new("Highlight")
+                        highlight.Name = "WeirdDadESP"
+                        highlight.FillColor = Color3.fromRGB(255, 165, 0)
+                        highlight.OutlineColor = Color3.fromRGB(255, 165, 0)
+                        highlight.FillTransparency = 0
+                        highlight.OutlineTransparency = 0.7
+                        highlight.Parent = weirdDad
+                    end
+                end
+            end
+
+            if not _G.WeirdDadESPConnection then
+                _G.WeirdDadESPConnection = RunService.RenderStepped:Connect(UpdateWeirdDadESP)
+            end
+        else
+            if _G.WeirdDadESPConnection then
+                _G.WeirdDadESPConnection:Disconnect()
+                _G.WeirdDadESPConnection = nil
+            end
+            local weirdDad = Workspace:FindFirstChild("WeirdDad") or ReplicatedStorage:FindFirstChild("WeirdDad")
+            if weirdDad then
+                local esp = weirdDad:FindFirstChild("WeirdDadESP")
+                if esp then esp:Destroy() end
+            end
+        end
+    end
+})
+
+Night1Tab:Space()
+
+-- Infinite O2
+do
+    local conn
+    Night1Tab:Toggle({
+        Title = "Infinite O2",
+        Default = false,
+        Callback = function(state)
+            InfiniteO2.Value = state
+            if conn then conn:Disconnect() conn=nil end
+            if not state then return end
+            conn=RunService.RenderStepped:Connect(function()
+                local breath=player.Character and player.Character:FindFirstChild("Breath")
+                if breath and breath.Value<20 then breath.Value=20 end
+            end)
+        end
+    })
+end
+
+Night1Tab:Space()
+
+-- Auto Light
+do
+    local db=false
+    local conn
+    Night1Tab:Toggle({
+        Title = "Auto Light",
+        Default = false,
+        Callback = function(state)
+            AutoLight.Value = state
+            if conn then conn:Disconnect() conn=nil end
+            if not state then return end
+            local remotes=ReplicatedStorage.Remotes
+            local fuseBox=Workspace:WaitForChild("FuseBox")
+            for _,wire in ipairs(fuseBox.Wires:GetChildren()) do
+                if wire:IsA("BasePart") and wire:FindFirstChild("Highlight") then
+                    conn=wire.Highlight:GetPropertyChangedSignal("Enabled"):Connect(function()
+                        if wire.Highlight.Enabled then
+                            if db then return end
+                            db=true
+                            remotes.ClickWire:FireServer(wire)
+                            task.wait(0.2)
+                            db=false
+                        end
+                    end)
+                    if wire.Highlight.Enabled then
+                        remotes.ClickWire:FireServer(wire)
+                    end
+                end
+            end
+        end
+    })
+end
+
+Night1Tab:Space()
+
+-- Refill Generator
+Night1Tab:Button({
+    Title = "Refill Generator",
+    Callback = function()
+        local char=player.Character or player.CharacterAdded:Wait()
+        local hrp=char:WaitForChild("HumanoidRootPart")
+        local original=hrp.CFrame
+        local Shack=Workspace:WaitForChild("Shack")
+        hrp.CFrame=CFrame.new(-81,4,-131)
+        task.wait(0.15)
+        for i=1,2 do fireclickdetector(Shack.JerryCan.ClickDetector) task.wait(0.1) end
+        for i=1,2 do fireclickdetector(Shack.Generator.ClickDetector) task.wait(0.1) end
+        hrp.CFrame=original
+    end
+})
+
+Night1Tab:Space()
+
+-- Auto Scare
+do
+    local busy=false
+    local conn
+    local ROOM_POS={
+        LivingRoom=Vector3.new(-24,7,-53),
+        BottomCorridor=Vector3.new(-24,7,-84),
+        Entrance=Vector3.new(-7,7,-36),
+        Ladder=Vector3.new(-1,7,-62),
+        TopCorridor=Vector3.new(-8,23,-76),
+        TopCorridor2=Vector3.new(-28,23,-41),
+        Bathroom=Vector3.new(-29,23,-48),
+        Bedroom=Vector3.new(-16,23,-75)
+    }
+
+    Night1Tab:Toggle({
+        Title = "Auto Scare (Stable)",
+        Default = false,
+        Callback = function(state)
+            AutoScare.Value = state
+            if conn then conn:Disconnect() conn=nil end
+            if not state then busy=false return end
+            conn=Workspace.ChildAdded:Connect(function(child)
+                if not AutoScare.Value or busy then return end
+                if child.Name~="Mutant" then return end
+                local larry=child
+                local cfg=larry:FindFirstChild("Config")
+                local wandering=cfg and cfg:FindFirstChild("Wandering")
+                if not wandering or wandering.Value~=false then return end
+                local hrp=player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                busy=true
+                local original=hrp.CFrame
+                for _,window in ipairs(Workspace.Windows:GetChildren()) do
+                    local room=window.RoomName.Value
+                    local pos=ROOM_POS[room]
+                    if not pos then continue end
+                    if (larry.PrimaryPart.Position - window:GetPivot().Position).Magnitude>12 then continue end
+                    local light
+                    for _,l in ipairs(Workspace.Lights:GetChildren()) do
+                        if l.Status.RoomName.Value==room then light=l break end
+                    end
+                    if not light then continue end
+                    local cd=light.Switch.Detector:FindFirstChildOfClass("ClickDetector")
+                    if not cd then continue end
+                    hrp.CFrame=CFrame.new(pos)
+                    task.wait(0.35)
+                    for i=1,3 do fireclickdetector(cd) task.wait(0.45) end
+                    break
+                end
+                task.wait(0.2)
+                hrp.CFrame=original
+                busy=false
+            end)
+        end
+    })
+end
+
+----------------------------------------------------------------
+-- CRAZY DAD MODE TAB
+----------------------------------------------------------------
+local CrazyDadTab = Window:Tab({ Title = "Crazy Dad Mode", Icon = "utensils" })
+
+-- Função auxiliar para encontrar ProximityPrompt
+local function FindPrompt(parent)
+    if not parent then return nil end
+    -- Procura diretamente
+    local prompt = parent:FindFirstChildOfClass("ProximityPrompt")
+    if prompt then return prompt end
+    -- Procura em todos os descendentes
+    for _, child in ipairs(parent:GetDescendants()) do
+        if child:IsA("ProximityPrompt") then
+            return child
+        end
+    end
+    return nil
+end
+
+-- Catch Noodles
+CrazyDadTab:Button({
+    Title = "Catch Noodles",
+    Callback = function()
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local original = hrp.CFrame
+
+        hrp.CFrame = CFrame.new(-44, 8, -80)
+        task.wait(0.5)
+
+        local kitchen = Workspace:FindFirstChild("Kitchen")
+        if kitchen then
+            local fridgeNoodles = kitchen:FindFirstChild("FridgeNoodles")
+            if fridgeNoodles then
+                local prompt = FindPrompt(fridgeNoodles)
+                if prompt then
+                    for i = 1, 2 do
+                        fireproximityprompt(prompt)
+                        task.wait(0.3)
+                    end
+                else
+                    WindUI:Notify({
+                        Title = "Error",
+                        Content = "ProximityPrompt not found in FridgeNoodles"
+                    })
+                end
+            else
+                WindUI:Notify({
+                    Title = "Error",
+                    Content = "FridgeNoodles not found"
+                })
+            end
+        end
+
+        task.wait(0.3)
+        hrp.CFrame = original
+    end
+})
+
+CrazyDadTab:Space()
+
+-- Cook Noodles (AGORA COM EQUIPAMENTO DO RAWNOODLE)
+CrazyDadTab:Button({
+    Title = "Cook Noodles",
+    Callback = function()
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local original = hrp.CFrame
+
+        -- PRIMEIRO equipa o RawNoodle se estiver no inventário
+        local backpack = player:FindFirstChild("Backpack")
+        local rawNoodle = backpack and backpack:FindFirstChild("RawNoodle")
+
+        if rawNoodle then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            -- Método 1: EquipTool
+            if humanoid then
+                pcall(function()
+                    humanoid:EquipTool(rawNoodle)
+                end)
+            end
+            task.wait(0.2)
+            -- Método 2: Mudar parent diretamente (backup)
+            pcall(function()
+                if rawNoodle.Parent == backpack then
+                    rawNoodle.Parent = char
+                end
+            end)
+        end
+
+        task.wait(0.3)
+
+        -- Teleporta para o stove
+        hrp.CFrame = CFrame.new(-44, 8, -80)
+        task.wait(0.5)
+
+        local kitchen = Workspace:FindFirstChild("Kitchen")
+        if kitchen then
+            local stove = kitchen:FindFirstChild("Stove")
+            if stove then
+                local prompt = FindPrompt(stove)
+                if prompt then
+                    fireproximityprompt(prompt)
+                else
+                    WindUI:Notify({
+                        Title = "Error",
+                        Content = "ProximityPrompt not found in Stove"
+                    })
+                end
+            else
+                WindUI:Notify({
+                    Title = "Error",
+                    Content = "Stove not found"
+                })
+            end
+        end
+
+        task.wait(0.3)
+        hrp.CFrame = original
+    end
+})
+
+CrazyDadTab:Space()
+
+-- Auto Cook and Pick Noodles (BOTÃO - executa 1 vez)
+CrazyDadTab:Button({
+    Title = "Auto Cook and Pick Noodles",
+    Callback = function()
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local original = hrp.CFrame
+
+        -- Catch Noodles
+        hrp.CFrame = CFrame.new(-44, 8, -80)
+        task.wait(0.5)
+
+        local kitchen = Workspace:FindFirstChild("Kitchen")
+        if kitchen then
+            local fridgeNoodles = kitchen:FindFirstChild("FridgeNoodles")
+            if fridgeNoodles then
+                local prompt = FindPrompt(fridgeNoodles)
+                if prompt then
+                    for i = 1, 2 do
+                        fireproximityprompt(prompt)
+                        task.wait(0.3)
+                    end
+                end
+            end
+        end
+
+        task.wait(0.5)
+
+        -- ANTES de usar o Stove, equipar RawNoodle com 2 métodos
+        local backpack = player:FindFirstChild("Backpack")
+        local rawNoodle = backpack and backpack:FindFirstChild("RawNoodle")
+
+        if rawNoodle then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            -- Método 1: EquipTool
+            if humanoid then
+                pcall(function()
+                    humanoid:EquipTool(rawNoodle)
+                end)
+            end
+            task.wait(0.2)
+            -- Método 2: Mudar parent diretamente (backup)
+            pcall(function()
+                if rawNoodle.Parent == backpack then
+                    rawNoodle.Parent = char
+                end
+            end)
+        end
+
+        task.wait(0.3)
+
+        -- Cook Noodles
+        if kitchen then
+            local stove = kitchen:FindFirstChild("Stove")
+            if stove then
+                local prompt = FindPrompt(stove)
+                if prompt then
+                    fireproximityprompt(prompt)
+                end
+            end
+        end
+
+        task.wait(0.3)
+        hrp.CFrame = original
+
+        WindUI:Notify({
+            Title = "Success",
+            Content = "Auto Cook and Pick Noodles completed!"
+        })
+    end
+})
+
+----------------------------------------------------------------
+-- MISC TAB
+----------------------------------------------------------------
+local MiscTab = Window:Tab({ Title = "Misc", Icon = "settings" })
+
+-- Collect All Items on Map
+MiscTab:Button({
+    Title = "Collect All Items on Map",
+    Callback = function()
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local original = hrp.CFrame
+
+        local itemSpots = Workspace:FindFirstChild("ItemSpots")
+        if not itemSpots then 
+            WindUI:Notify({
+                Title = "Error",
+                Content = "ItemSpots not found"
+            })
+            return 
+        end
+
+        local collected = 0
+        for _, item in ipairs(itemSpots:GetChildren()) do
+            if item:IsA("BasePart") or item:IsA("Model") then
+                local clickDetector = item:FindFirstChildOfClass("ClickDetector")
+                if clickDetector then
+                    local pos = item:IsA("BasePart") and item.Position or (item:GetPivot() and item:GetPivot().Position)
+                    if pos then
+                        hrp.CFrame = CFrame.new(pos) + Vector3.new(0, 3, 0)
+                        task.wait(0.2)
+                        fireclickdetector(clickDetector)
+                        collected = collected + 1
+                        task.wait(0.1)
+                    end
+                end
+            end
+        end
+
+        hrp.CFrame = original
+
+        WindUI:Notify({
+            Title = "Success",
+            Content = "Collected " .. collected .. " items!"
+        })
+    end
+})

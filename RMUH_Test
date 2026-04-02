@@ -39,7 +39,7 @@ local gameState = ReplicatedStorage:WaitForChild("GameState")
 local night = gameState:WaitForChild("Night")
 
 ----------------------------------------------------------------
--- CONFIGURATION BOOLVALUES (ALL FALSE)
+-- CONFIGURATION BOOLVALUES
 ----------------------------------------------------------------
 local configFolder = Instance.new("Configuration")
 configFolder.Name = "RMUH_Config"
@@ -235,7 +235,7 @@ end
 ----------------------------------------------------------------
 local Night1Tab = Window:Tab({ Title = "Night 1", Icon = "menu" })
 
--- ESP Larry (Highlight API)
+-- ESP Larry
 Night1Tab:Toggle({
     Title = "ESP Larry",
     Default = false,
@@ -512,7 +512,7 @@ CrazyDadTab:Button({
 
 CrazyDadTab:Space()
 
--- Cook Noodles (AGORA COM EQUIPAMENTO DO RAWNOODLE)
+-- Cook Noodles
 CrazyDadTab:Button({
     Title = "Cook Noodles",
     Callback = function()
@@ -533,7 +533,7 @@ CrazyDadTab:Button({
                 end)
             end
             task.wait(0.2)
-            -- Método 2: Mudar parent diretamente (backup)
+            -- Método 2: Mudar parent diretamente
             pcall(function()
                 if rawNoodle.Parent == backpack then
                     rawNoodle.Parent = char

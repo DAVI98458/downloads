@@ -1,6 +1,6 @@
 task.wait(0.5)
 pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/game%20happy",true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/game%20happy",true))()
 end)
 
 ----------------------------------------------------------------
@@ -233,7 +233,7 @@ end
 ----------------------------------------------------------------
 -- NIGHT 1 TAB
 ----------------------------------------------------------------
-local Night1Tab = Window:Tab({ Title = "Night 1", Icon = "home" })
+local Night1Tab = Window:Tab({ Title = "Night 1", Icon = "menu" })
 
 -- ESP Larry (Highlight API)
 Night1Tab:Toggle({

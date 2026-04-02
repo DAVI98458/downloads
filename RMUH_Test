@@ -1,6 +1,6 @@
 task.wait(0.5)
 pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/game%20happy",true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/game%20happy",true))()
 end)
 
 ----------------------------------------------------------------
@@ -13,7 +13,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 ----------------------------------------------------------------
 local Window = WindUI:CreateWindow({
     Title = "RMUH ULTIMATE Hub (BETA)",
-    Author = "by: shadown_gd and Juao (authorized modification)",
+    Author = "by: shadown_gd and Juao (Juao He is no longer participating, but he remains in our hearts 😉)",
     Folder = "RMUH",
     Size = UDim2.fromOffset(580, 460),
     Transparent = true,

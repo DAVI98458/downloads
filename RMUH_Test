@@ -1,6 +1,6 @@
 task.wait(0.5)
 pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/game%20happy",true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/game%20happy",true))()
 end)
 
 ----------------------------------------------------------------
@@ -13,7 +13,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 ----------------------------------------------------------------
 local Window = WindUI:CreateWindow({
     Title = "RMUH ULTIMATE Hub (BETA)",
-    Icon = "rbxassetid://10618928818",
+    Icon = "User",
     Author = "by: shadown_gd and Juao (authorized modification)",
     Folder = "RMUH",
     Size = UDim2.fromOffset(580, 460),
@@ -102,7 +102,7 @@ end
 ----------------------------------------------------------------
 -- TAB OTHERS
 ----------------------------------------------------------------
-local OthersTab = Window:CreateTab({ Title = "Others", Icon = "user" })
+local OthersTab = Window:CreateTab({ Title = "Others", Icon = "users" })
 
 -- Classic Camera
 OthersTab:CreateToggle({
@@ -261,7 +261,7 @@ OthersTab:CreateToggle({
 -- NIGHT 1 TAB
 ----------------------------------------------------------------
 if night.Value ~= 1 then return end
-local Night1Tab = Window:CreateTab({ Title = "Night 1", Icon = "home" })
+local Night1Tab = Window:CreateTab({ Title = "Night 1", Icon = "menu" })
 
 -- ESP Larry (Highlight API)
 Night1Tab:CreateToggle({

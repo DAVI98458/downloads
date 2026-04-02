@@ -13,7 +13,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 ----------------------------------------------------------------
 local Window = WindUI:CreateWindow({
     Title = "RMUH ULTIMATE Hub (BETA)",
-    Author = "by: shadown_gd and Juao (authorized modification)",
+    Author = "by: abyssnt and Juao (Juao He stopped doing it, but I will always remember him😉)",
     Folder = "RMUH",
     Size = UDim2.fromOffset(580, 460),
     Transparent = true,
@@ -73,7 +73,7 @@ local DisableColdToggle = Bool("DisableColdToggle")
 ----------------------------------------------------------------
 -- OTHERS TAB
 ----------------------------------------------------------------
-local OthersTab = Window:Tab({ Title = "Others", Icon = "user" })
+local OthersTab = Window:Tab({ Title = "Others", Icon = "users" })
 
 -- Classic Camera
 OthersTab:Toggle({

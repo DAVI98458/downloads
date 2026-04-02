@@ -1,6 +1,6 @@
 task.wait(0.5)
 pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/game%20happy",true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/game%20happy",true))()
 end)
 
 ----------------------------------------------------------------

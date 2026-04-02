@@ -601,7 +601,7 @@ CrazyDadTab:Button({
             end
         end
 
-        task.wait(0.5)
+        task.wait(0.2)
 
         -- ANTES de usar o Stove, equipar RawNoodle com 2 métodos
         local backpack = player:FindFirstChild("Backpack")
@@ -624,7 +624,7 @@ CrazyDadTab:Button({
             end)
         end
 
-        task.wait(0.3)
+        task.wait(0.2)
 
         -- Cook Noodles
         if kitchen then
@@ -643,54 +643,6 @@ CrazyDadTab:Button({
         WindUI:Notify({
             Title = "Success",
             Content = "Auto Cook and Pick Noodles completed!"
-        })
-    end
-})
-
-----------------------------------------------------------------
--- MISC TAB
-----------------------------------------------------------------
-local MiscTab = Window:Tab({ Title = "Misc", Icon = "settings" })
-
--- Collect All Items on Map
-MiscTab:Button({
-    Title = "Collect All Items on Map",
-    Callback = function()
-        local char = player.Character or player.CharacterAdded:Wait()
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        local original = hrp.CFrame
-
-        local itemSpots = Workspace:FindFirstChild("ItemSpots")
-        if not itemSpots then 
-            WindUI:Notify({
-                Title = "Error",
-                Content = "ItemSpots not found"
-            })
-            return 
-        end
-
-        local collected = 0
-        for _, item in ipairs(itemSpots:GetChildren()) do
-            if item:IsA("BasePart") or item:IsA("Model") then
-                local clickDetector = item:FindFirstChildOfClass("ClickDetector")
-                if clickDetector then
-                    local pos = item:IsA("BasePart") and item.Position or (item:GetPivot() and item:GetPivot().Position)
-                    if pos then
-                        hrp.CFrame = CFrame.new(pos) + Vector3.new(0, 3, 0)
-                        task.wait(0.2)
-                        fireclickdetector(clickDetector)
-                        collected = collected + 1
-                        task.wait(0.1)
-                    end
-                end
-            end
-        end
-
-        hrp.CFrame = original
-
-        WindUI:Notify({
-            Title = "Success",
-            Content = "Collected " .. collected .. " items!"
         })
     end
 })

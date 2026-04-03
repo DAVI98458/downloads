@@ -10,7 +10,7 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false
 })
 
-local MainTab = Window:CreateTab("Main")
+local MainTab = Window:CreateTab("Main",home)
 
 MainTab:CreateButton({
     Name = "Click me",

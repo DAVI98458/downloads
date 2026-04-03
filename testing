@@ -19,3 +19,5 @@ MainTab:CreateButton({
         print("welcome " .. player.Name)
     end
 })
+
+-- press f9 or digit in chat /console

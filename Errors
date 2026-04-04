@@ -1,0 +1,370 @@
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local IDENTIFIER = "scripton"
+local BASE_GETKEY = "https://new.pandadevelopment.net"
+local BASE_VALIDATE = "https://pandadevelopment.net"
+
+local Scripts = {
+    ["100255403764514"] = "https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/memory%203",
+    ["125998488582708"] = "https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/Eternal%20nights",
+    ["13803700382"] = "https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/Fnaf%20Doom3",
+    ["13803700135"] = "https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/Fnaf%20Doom1",
+    ["114413950886998"] = "https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/Fatal%20Floor",
+    ["12497348201"] = "https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/Fnaf%20coop",
+    ["14896802601"] = "https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/RMUH%20BETA",
+    ["16667550979"] = "https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/Night%202",
+    ["140260816701736"] = {
+        "https://api.junkie-development.de/api/v1/luascripts/public/82a88dd956eefd8282330506b0b50762b661e3506208eed8de60a7ac7aed6ff5/download",
+        "https://raw.githubusercontent.com/DAVI98458/Nicescript/refs/heads/main/CABINS%2BSafeZone"
+    }
+}
+
+local function ExecutePlaceScript()
+    local placeId = tostring(game.PlaceId)
+    local scriptUrl = Scripts[placeId]
+    if not scriptUrl then
+        warn("Sem script para:", placeId)
+        return false
+    end
+    if type(scriptUrl) == "table" then
+        for _, url in ipairs(scriptUrl) do
+            pcall(function() loadstring(game:HttpGet(url))() end)
+        end
+    else
+        pcall(function() loadstring(game:HttpGet(scriptUrl))() end)
+    end
+    return true
+end
+
+local function GenerateHWID()
+    local hwid =
+        (typeof(getdeviceid) == "function" and getdeviceid()) or
+        (typeof(GetHWID) == "function" and GetHWID()) or
+        (typeof(gethwid) == "function" and gethwid()) or
+        (typeof(getmachineuid) == "function" and getmachineuid()) or
+        tostring(player.UserId)
+    return tostring(hwid)
+end
+
+local function GetKeyLink()
+    return BASE_GETKEY .. "/getkey/" .. IDENTIFIER .. "?hwid=" .. GenerateHWID()
+end
+
+local function ValidateKey(key)
+    local url = BASE_VALIDATE .. "/v2_validation?hwid=" .. GenerateHWID() .. "&service=" .. IDENTIFIER .. "&key=" .. key
+
+    local success, response = pcall(function()
+        if request then
+            return request({ Url = url, Method = "GET" })
+        elseif http_request then
+            return http_request({ Url = url, Method = "GET" })
+        elseif syn and syn.request then
+            return syn.request({ Url = url, Method = "GET" })
+        else
+            return { Body = game:HttpGet(url) }
+        end
+    end)
+
+    if not success or not response then
+        return false, "Erro de conexão"
+    end
+
+    local body = response.Body or response
+    print("[KeySystem] Body:", body)
+
+    local data
+    local ok = pcall(function()
+        data = HttpService:JSONDecode(tostring(body))
+    end)
+
+    if not ok or not data then
+        return false, "Resposta inválida do servidor"
+    end
+
+    if data.V2_Authentication == true or data.V2_Authentication == "true" then
+        local isPremium = data.Key_Information and data.Key_Information.Premium_Mode
+        return true, isPremium and "Key Premium válida ⭐" or "Key válida"
+    end
+
+    if data.success == true or data.valid == true then
+        return true, "Key válida"
+    end
+
+    return false, data.message or data.Message or data.error or "Key inválida"
+end
+
+local function Copy(text)
+    pcall(function()
+        if setclipboard then setclipboard(text)
+        elseif toclipboard then toclipboard(text) end
+    end)
+end
+
+if playerGui:FindFirstChild("ModernKeySystem") then
+    playerGui.ModernKeySystem:Destroy()
+end
+
+local gui = Instance.new("ScreenGui", playerGui)
+gui.Name = "ModernKeySystem"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local overlay = Instance.new("Frame", gui)
+overlay.Size = UDim2.new(1, 0, 1, 0)
+overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+overlay.BackgroundTransparency = 0.5
+overlay.BorderSizePixel = 0
+overlay.ZIndex = 1
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 440, 0, 300)
+main.Position = UDim2.new(0.5, -220, 0.5, -150)
+main.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+main.BorderSizePixel = 0
+main.ZIndex = 2
+
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 16)
+
+local cardStroke = Instance.new("UIStroke", main)
+cardStroke.Color = Color3.fromRGB(180, 0, 255)
+cardStroke.Thickness = 1.5
+cardStroke.Transparency = 0.3
+
+local gradient = Instance.new("UIGradient", main)
+gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 120)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(100, 0, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 180, 255))
+}
+gradient.Transparency = NumberSequence.new{
+    NumberSequenceKeypoint.new(0, 0.88),
+    NumberSequenceKeypoint.new(1, 0.92)
+}
+
+RunService.RenderStepped:Connect(function()
+    gradient.Rotation = (gradient.Rotation + 0.4) % 360
+end)
+
+local closeBtn = Instance.new("TextButton", main)
+closeBtn.Size = UDim2.new(0, 28, 0, 28)
+closeBtn.Position = UDim2.new(1, -36, 0, 8)
+closeBtn.BackgroundColor3 = Color3.fromRGB(30, 20, 40)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(180, 180, 200)
+closeBtn.TextSize = 13
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.BorderSizePixel = 0
+closeBtn.AutoButtonColor = false
+closeBtn.ZIndex = 10
+
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 7)
+Instance.new("UIStroke", closeBtn).Color = Color3.fromRGB(100, 60, 140)
+
+closeBtn.MouseEnter:Connect(function()
+    TweenService:Create(closeBtn, TweenInfo.new(0.15), {
+        BackgroundColor3 = Color3.fromRGB(180, 0, 60),
+        TextColor3 = Color3.fromRGB(255, 255, 255)
+    }):Play()
+end)
+closeBtn.MouseLeave:Connect(function()
+    TweenService:Create(closeBtn, TweenInfo.new(0.15), {
+        BackgroundColor3 = Color3.fromRGB(30, 20, 40),
+        TextColor3 = Color3.fromRGB(180, 180, 200)
+    }):Play()
+end)
+closeBtn.MouseButton1Click:Connect(function()
+    TweenService:Create(main, TweenInfo.new(0.25), { BackgroundTransparency = 1 }):Play()
+    TweenService:Create(overlay, TweenInfo.new(0.25), { BackgroundTransparency = 1 }):Play()
+    task.wait(0.25)
+    gui:Destroy()
+end)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, -50, 0, 45)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "🔑  KEY SYSTEM"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.ZIndex = 3
+
+local sub = Instance.new("TextLabel", main)
+sub.Size = UDim2.new(1, 0, 0, 20)
+sub.Position = UDim2.new(0, 0, 0, 42)
+sub.BackgroundTransparency = 1
+sub.Text = "Insira sua key para continuar"
+sub.TextColor3 = Color3.fromRGB(160, 160, 180)
+sub.TextSize = 12
+sub.Font = Enum.Font.Gotham
+sub.ZIndex = 3
+
+local sep = Instance.new("Frame", main)
+sep.Size = UDim2.new(0.85, 0, 0, 1)
+sep.Position = UDim2.new(0.075, 0, 0, 70)
+sep.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+sep.BorderSizePixel = 0
+sep.ZIndex = 3
+
+local inputBg = Instance.new("Frame", main)
+inputBg.Size = UDim2.new(0.85, 0, 0, 44)
+inputBg.Position = UDim2.new(0.075, 0, 0, 85)
+inputBg.BackgroundColor3 = Color3.fromRGB(22, 22, 35)
+inputBg.BorderSizePixel = 0
+inputBg.ZIndex = 3
+
+Instance.new("UICorner", inputBg).CornerRadius = UDim.new(0, 10)
+
+local inputStroke = Instance.new("UIStroke", inputBg)
+inputStroke.Color = Color3.fromRGB(80, 80, 120)
+inputStroke.Thickness = 1
+
+local input = Instance.new("TextBox", inputBg)
+input.Size = UDim2.new(1, -16, 1, 0)
+input.Position = UDim2.new(0, 8, 0, 0)
+input.BackgroundTransparency = 1
+input.PlaceholderText = "Enter your key here..."
+input.PlaceholderColor3 = Color3.fromRGB(100, 100, 130)
+input.TextColor3 = Color3.fromRGB(220, 220, 255)
+input.TextSize = 13
+input.Font = Enum.Font.Gotham
+input.ClearTextOnFocus = true
+input.ZIndex = 4
+
+input.Focused:Connect(function()
+    TweenService:Create(inputStroke, TweenInfo.new(0.2), {
+        Color = Color3.fromRGB(180, 0, 255), Thickness = 1.5
+    }):Play()
+end)
+input.FocusLost:Connect(function()
+    TweenService:Create(inputStroke, TweenInfo.new(0.2), {
+        Color = Color3.fromRGB(80, 80, 120), Thickness = 1
+    }):Play()
+end)
+
+local result = Instance.new("TextLabel", main)
+result.Size = UDim2.new(0.85, 0, 0, 24)
+result.Position = UDim2.new(0.075, 0, 0, 138)
+result.BackgroundTransparency = 1
+result.Text = ""
+result.TextColor3 = Color3.fromRGB(160, 160, 180)
+result.TextSize = 12
+result.Font = Enum.Font.Gotham
+result.ZIndex = 3
+
+local function MakeButton(parent, text, posX, color1, color2)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(0, 158, 0, 42)
+    btn.Position = UDim2.new(0, posX, 0, 170)
+    btn.BackgroundColor3 = color1
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 13
+    btn.Font = Enum.Font.GothamBold
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = false
+    btn.ZIndex = 3
+
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+
+    local g = Instance.new("UIGradient", btn)
+    g.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, color1),
+        ColorSequenceKeypoint.new(1, color2)
+    }
+    g.Rotation = 90
+
+    local s = Instance.new("UIStroke", btn)
+    s.Color = color2
+    s.Thickness = 1
+    s.Transparency = 0.5
+
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = color2 }):Play()
+        TweenService:Create(s, TweenInfo.new(0.15), { Transparency = 0 }):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = color1 }):Play()
+        TweenService:Create(s, TweenInfo.new(0.15), { Transparency = 0.5 }):Play()
+    end)
+    btn.MouseButton1Down:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.08), { Size = UDim2.new(0, 152, 0, 39) }):Play()
+    end)
+    btn.MouseButton1Up:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.08), { Size = UDim2.new(0, 158, 0, 42) }):Play()
+    end)
+
+    return btn
+end
+
+local check = MakeButton(main, "✔  Check Key", 33,
+    Color3.fromRGB(120, 0, 200),
+    Color3.fromRGB(200, 0, 255)
+)
+
+local get = MakeButton(main, "🔗  Get Key", 249,
+    Color3.fromRGB(0, 120, 200),
+    Color3.fromRGB(0, 200, 255)
+)
+
+local footer = Instance.new("TextLabel", main)
+footer.Size = UDim2.new(1, 0, 0, 24)
+footer.Position = UDim2.new(0, 0, 0, 268)
+footer.BackgroundTransparency = 1
+footer.Text = "scripton • key system"
+footer.TextColor3 = Color3.fromRGB(70, 70, 90)
+footer.TextSize = 11
+footer.Font = Enum.Font.Gotham
+footer.ZIndex = 3
+
+get.MouseButton1Click:Connect(function()
+    local link = GetKeyLink()
+    Copy(link)
+    result.Text = "✅ Link copiado! Cole no navegador"
+    result.TextColor3 = Color3.fromRGB(0, 220, 120)
+    print("[KeySystem] GET KEY:", link)
+end)
+
+check.MouseButton1Click:Connect(function()
+    local key = input.Text
+
+    if key == "" then
+        result.Text = "⚠️  Digite uma key primeiro"
+        result.TextColor3 = Color3.fromRGB(255, 200, 0)
+        return
+    end
+
+    result.Text = "⏳  Validando..."
+    result.TextColor3 = Color3.fromRGB(160, 160, 200)
+    check.Text = "Aguarde..."
+
+    task.spawn(function()
+        local valid, msg = ValidateKey(key)
+        check.Text = "✔  Check Key"
+
+        if valid then
+            result.Text = "✅  " .. msg .. " — Carregando script..."
+            result.TextColor3 = Color3.fromRGB(0, 220, 120)
+            task.wait(0.5)
+
+            if ExecutePlaceScript() then
+                TweenService:Create(main, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
+                TweenService:Create(overlay, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
+                task.wait(0.4)
+                gui:Destroy()
+            else
+                result.Text = "⚠️  Sem script para este jogo"
+                result.TextColor3 = Color3.fromRGB(255, 160, 0)
+            end
+        else
+            result.Text = "❌  " .. msg
+            result.TextColor3 = Color3.fromRGB(255, 80, 80)
+        end
+    end)
+end)

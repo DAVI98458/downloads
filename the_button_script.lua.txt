@@ -1,0 +1,637 @@
+-- WindUI Script: "the button" by abyssnt (FIXED - Aimbot Force + Grab)
+
+local Players    = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace  = game:GetService("Workspace")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera      = Workspace.CurrentCamera
+
+-- ============================================================
+-- WINDUI LOADER
+-- ============================================================
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+-- ============================================================
+-- WINDOW
+-- ============================================================
+local Window = WindUI:CreateWindow({
+    Title       = "the button",
+    Author      = "by: abyssnt",
+    Size        = UDim2.fromOffset(580, 460),
+    Theme       = "Dark",
+    Transparent = true,
+})
+
+-- ============================================================
+-- STATE
+-- ============================================================
+local State = {
+    AimbotEnabled       = false,
+    SelectedTarget      = nil,
+    SelectedPlayerName  = "nobody",
+    EspHighlightEnabled = false,
+    EspNicknameEnabled  = false,
+    SpawnNotifyEnabled  = false,
+    Highlights          = {},
+    NicknameLabels      = {},
+    AimbotSmoothness    = 0.5,
+}
+
+-- ============================================================
+-- UTILITIES
+-- ============================================================
+local function GetRoot(player)
+    local char = player and player.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function IsAlive(player)
+    local char = player and player.Character
+    local hum  = char and char:FindFirstChildOfClass("Humanoid")
+    return hum and hum.Health > 0
+end
+
+local RayParamsCache = nil
+
+local function GetRayParams(targetChar)
+    if not RayParamsCache then
+        RayParamsCache = RaycastParams.new()
+        RayParamsCache.FilterType = Enum.RaycastFilterType.Blacklist
+        RayParamsCache.IgnoreWater = true
+    end
+    RayParamsCache.FilterDescendantsInstances = {LocalPlayer.Character, targetChar}
+    return RayParamsCache
+end
+
+local function HasLineOfSight(targetRoot)
+    if not targetRoot then return false end
+    local origin = Camera.CFrame.Position
+    local direction = targetRoot.Position - origin
+    local distance = direction.Magnitude
+    if distance > 300 then return false end
+    local params = GetRayParams(targetRoot.Parent)
+    local result = Workspace:Raycast(origin, direction.Unit * distance, params)
+    return result == nil
+end
+
+local function GetPlayerFromEntry(entry)
+    if entry == "nobody" then return nil end
+    local name = entry:match("@(.+)%)$")
+    return name and Players:FindFirstChild(name) or nil
+end
+
+-- ============================================================
+-- AIMBOT LOOP - FORÇA ROTAÇÃO
+-- ============================================================
+local AimbotConn
+local ClickConn
+local Mouse = LocalPlayer:GetMouse()
+
+local lastCameraCF = CFrame.new()
+local cameraStuckTime = 0
+local lastRaycastTime = 0
+local lastLOS = true
+local targetLostCount = 0
+local RAYCAST_INTERVAL = 0.08
+local CAMERA_STUCK_THRESHOLD = 2
+
+local function StopAimbot()
+    if AimbotConn then AimbotConn:Disconnect() AimbotConn = nil end
+    if ClickConn  then ClickConn:Disconnect()  ClickConn  = nil end
+    State.SelectedTarget = nil
+    targetLostCount = 0
+    cameraStuckTime = 0
+end
+
+local function StartAimbot()
+    StopAimbot()
+
+    local lastClickTime = 0
+    local CLICK_COOLDOWN = 10
+
+    ClickConn = Mouse.Button1Down:Connect(function()
+        if not State.AimbotEnabled then return end
+        if State.SelectedPlayerName ~= "nobody" then return end
+        local now = tick()
+        if State.SelectedTarget ~= nil and (now - lastClickTime) < CLICK_COOLDOWN then return end
+        local hit = Mouse.Target
+        if not hit then return end
+        local model = hit:FindFirstAncestorOfClass("Model")
+        if not model then return end
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Character == model and p ~= LocalPlayer then
+                State.SelectedTarget = p
+                lastClickTime = now
+                targetLostCount = 0
+                cameraStuckTime = 0
+                break
+            end
+        end
+    end)
+
+    AimbotConn = RunService.Heartbeat:Connect(function()
+        if not State.AimbotEnabled then return end
+
+        local target = State.SelectedTarget
+        if not target or not IsAlive(target) then
+            targetLostCount = targetLostCount + 1
+            if targetLostCount > 30 then
+                State.SelectedTarget = nil
+                targetLostCount = 0
+            end
+            return
+        end
+
+        local root = GetRoot(target)
+        if not root then
+            targetLostCount = targetLostCount + 1
+            return
+        end
+
+        targetLostCount = 0
+
+        local currentCF = Camera.CFrame
+        local isCameraStuck = (currentCF.Position - lastCameraCF.Position).Magnitude < 0.01
+
+        if isCameraStuck then
+            cameraStuckTime = cameraStuckTime + 0.03
+        else
+            cameraStuckTime = 0
+        end
+        lastCameraCF = currentCF
+
+        local now = tick()
+        if now - lastRaycastTime >= RAYCAST_INTERVAL then
+            lastRaycastTime = now
+            lastLOS = HasLineOfSight(root)
+        end
+
+        if lastLOS then
+            local cf = Camera.CFrame
+            local targetPos = root.Position
+
+            if State.AimbotSmoothness > 0 then
+                local newCF = CFrame.lookAt(cf.Position, targetPos)
+
+                if cameraStuckTime > CAMERA_STUCK_THRESHOLD then
+                    Camera.CFrame = cf * CFrame.Angles(0, math.rad(0.1), 0)
+                    task.wait(0.01)
+                    cameraStuckTime = 0
+                end
+
+                local lerpFactor = 1 - State.AimbotSmoothness
+                if lerpFactor < 0.1 then lerpFactor = 0.1 end
+                if lerpFactor > 1 then lerpFactor = 1 end
+
+                Camera.CFrame = cf:Lerp(newCF, lerpFactor)
+            else
+                Camera.CFrame = CFrame.lookAt(cf.Position, targetPos)
+            end
+        end
+    end)
+end
+
+-- ============================================================
+-- ESP: HIGHLIGHT
+-- ============================================================
+local function ClearHighlights()
+    for _, h in pairs(State.Highlights) do
+        if h and h.Parent then h:Destroy() end
+    end
+    State.Highlights = {}
+end
+
+local function ApplyHighlight(player)
+    if player == LocalPlayer then return end
+    local char = player.Character
+    if not char then return end
+    if State.Highlights[player.Name] and State.Highlights[player.Name].Parent then return end
+    local hl = Instance.new("Highlight")
+    hl.Name = "ESP_HL_" .. player.Name
+    hl.Adornee = char
+    hl.OutlineColor = Color3.fromRGB(0, 255, 0)
+    hl.OutlineTransparency = 0.3
+    hl.FillColor = Color3.fromRGB(0, 255, 0)
+    hl.FillTransparency = 1
+    hl.Parent = char
+    State.Highlights[player.Name] = hl
+end
+
+local function EnableHighlightESP()
+    for _, p in ipairs(Players:GetPlayers()) do ApplyHighlight(p) end
+end
+
+-- ============================================================
+-- ESP: NICKNAME
+-- ============================================================
+local function ClearNicknames()
+    for _, b in pairs(State.NicknameLabels) do
+        if b and b.Parent then b:Destroy() end
+    end
+    State.NicknameLabels = {}
+end
+
+local function ApplyNickname(player)
+    if player == LocalPlayer then return end
+    local char = player.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    if State.NicknameLabels[player.Name] and State.NicknameLabels[player.Name].Parent then return end
+    local bb = Instance.new("BillboardGui")
+    bb.Name = "ESP_Nick_" .. player.Name
+    bb.Adornee = root
+    bb.Size = UDim2.new(0, 120, 0, 30)
+    bb.StudsOffset = Vector3.new(0, 3.5, 0)
+    bb.AlwaysOnTop = true
+    bb.Parent = root
+    local lbl = Instance.new("TextLabel")
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1, 0, 1, 0)
+    lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    lbl.TextSize = 11
+    lbl.Font = Enum.Font.GothamBold
+    lbl.Text = "@" .. player.Name
+    lbl.Parent = bb
+    State.NicknameLabels[player.Name] = bb
+end
+
+local function EnableNicknameESP()
+    for _, p in ipairs(Players:GetPlayers()) do ApplyNickname(p) end
+end
+
+-- ============================================================
+-- PLAYER HOOKS
+-- ============================================================
+local function HookPlayer(p)
+    p.CharacterAdded:Connect(function()
+        task.wait(1)
+        if State.EspHighlightEnabled then ApplyHighlight(p) end
+        if State.EspNicknameEnabled then ApplyNickname(p) end
+    end)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do HookPlayer(p) end
+Players.PlayerAdded:Connect(HookPlayer)
+
+Players.PlayerRemoving:Connect(function(p)
+    if State.SelectedTarget == p then State.SelectedTarget = nil end
+    if State.Highlights[p.Name] then
+        State.Highlights[p.Name]:Destroy()
+        State.Highlights[p.Name] = nil
+    end
+    if State.NicknameLabels[p.Name] then
+        State.NicknameLabels[p.Name]:Destroy()
+        State.NicknameLabels[p.Name] = nil
+    end
+end)
+
+-- ============================================================
+-- ITEM SPAWN WATCHER
+-- ============================================================
+local WATCH_ITEMS = { "Shield", "Katana", "L106", "Knife", "Briefcase", "Sledge" }
+local SpawnConns = {}
+
+local function StopSpawnWatcher()
+    for _, c in ipairs(SpawnConns) do c:Disconnect() end
+    SpawnConns = {}
+end
+
+local function StartSpawnWatcher()
+    StopSpawnWatcher()
+    local present = {}
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        for _, w in ipairs(WATCH_ITEMS) do
+            if obj.Name == w then present[obj] = true end
+        end
+    end
+    local c1 = Workspace.DescendantAdded:Connect(function(obj)
+        if not State.SpawnNotifyEnabled then return end
+        for _, w in ipairs(WATCH_ITEMS) do
+            if obj.Name == w and not present[obj] then
+                present[obj] = true
+                WindUI:Notify({
+                    Title = "Item Spawned",
+                    Content = "The item " .. w .. " spawned",
+                    Duration = 5,
+                    Icon = "package",
+                })
+                break
+            end
+        end
+    end)
+    local c2 = Workspace.DescendantRemoving:Connect(function(obj)
+        present[obj] = nil
+    end)
+    table.insert(SpawnConns, c1)
+    table.insert(SpawnConns, c2)
+end
+
+-- ============================================================
+-- GRAB ITEM - CORRIGIDO
+-- ============================================================
+local function GrabItem(itemName)
+    local char = LocalPlayer.Character
+    if not char then 
+        WindUI:Notify({
+            Title = "Error",
+            Content = "Character not found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then 
+        WindUI:Notify({
+            Title = "Error",
+            Content = "HumanoidRootPart not found!",
+            Duration = 3,
+            Icon = "x",
+        })
+        return 
+    end
+
+    local originalCFrame = root.CFrame
+    local prompt = nil
+    local itemPart = nil
+    local itemModel = nil
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj.Name == itemName then
+            local pp = obj:FindFirstChildOfClass("ProximityPrompt")
+            if not pp then
+                pp = obj:FindFirstChild("ProximityPrompt", true)
+            end
+
+            if pp then
+                prompt = pp
+                itemModel = obj
+                if obj:IsA("BasePart") then
+                    itemPart = obj
+                else
+                    itemPart = obj:FindFirstChildWhichIsA("BasePart")
+                    if not itemPart then
+                        for _, child in ipairs(obj:GetDescendants()) do
+                            if child:IsA("BasePart") then
+                                itemPart = child
+                                break
+                            end
+                        end
+                    end
+                end
+                break
+            end
+        end
+    end
+
+    if not prompt then
+        WindUI:Notify({
+            Title = "Item Not Found",
+            Content = "Item '" .. itemName .. "' not found or has no ProximityPrompt",
+            Duration = 4,
+            Icon = "x",
+        })
+        return
+    end
+
+    if not itemPart then
+        WindUI:Notify({
+            Title = "Error",
+            Content = "Found prompt but no BasePart to teleport to!",
+            Duration = 4,
+            Icon = "x",
+        })
+        return
+    end
+
+    print("[Grab] Item: " .. itemName)
+    print("[Grab] Prompt: " .. tostring(prompt))
+    print("[Grab] Part: " .. tostring(itemPart))
+    print("[Grab] Prompt Enabled: " .. tostring(prompt.Enabled))
+    print("[Grab] Prompt MaxActivationDistance: " .. tostring(prompt.MaxActivationDistance))
+
+    local targetPos = itemPart.CFrame.Position + Vector3.new(0, 3, 0)
+    root.CFrame = CFrame.new(targetPos)
+
+    task.wait(0.2)
+
+    local distance = (root.Position - itemPart.Position).Magnitude
+    print("[Grab] Distance after teleport: " .. tostring(distance))
+
+    if distance > prompt.MaxActivationDistance then
+        local direction = (itemPart.Position - root.Position).Unit
+        local closerPos = itemPart.Position - (direction * (prompt.MaxActivationDistance - 1))
+        root.CFrame = CFrame.new(closerPos + Vector3.new(0, 2, 0))
+        task.wait(0.1)
+    end
+
+    pcall(function()
+        fireproximityprompt(prompt)
+    end)
+
+    task.wait(0.1)
+
+    if prompt and prompt:IsDescendantOf(Workspace) then
+        local currentDist = (root.Position - itemPart.Position).Magnitude
+        if currentDist <= prompt.MaxActivationDistance then
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            task.wait(0.05)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        end
+    end
+
+    task.wait(0.2)
+
+    root.CFrame = originalCFrame
+
+    WindUI:Notify({
+        Title = "Grab " .. itemName,
+        Content = "Attempted to grab " .. itemName,
+        Duration = 3,
+        Icon = "check",
+    })
+end
+
+-- ============================================================
+-- TABS
+-- ============================================================
+local TabCombat = Window:Tab({ Title = "Combat", Icon = "swords" })
+local TabESP = Window:Tab({ Title = "ESP", Icon = "eye" })
+local TabPickup = Window:Tab({ Title = "Pick Up Items", Icon = "package" })
+
+-- ============================================================
+-- TAB: COMBAT
+-- ============================================================
+TabCombat:Toggle({
+    Title = "Aimbot Players",
+    Desc = "Locks onto selected player's HumanoidRootPart. Wall check only for map objects.",
+    Value = false,
+    Callback = function(enabled)
+        State.AimbotEnabled = enabled
+        if enabled then
+            State.SelectedTarget = GetPlayerFromEntry(State.SelectedPlayerName)
+            StartAimbot()
+        else
+            StopAimbot()
+            State.SelectedTarget = nil
+        end
+    end,
+})
+
+TabCombat:Slider({
+    Title = "Aimbot Smoothness",
+    Desc = "0 = Instant/Snap, 1 = Very Smooth (Default: 50)",
+    Min = 0,
+    Max = 100,
+    Value = 50,
+    Callback = function(value)
+        State.AimbotSmoothness = value / 100
+    end,
+})
+
+local playerEntries = { "nobody" }
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then
+        table.insert(playerEntries, p.DisplayName .. "(@" .. p.Name .. ")")
+    end
+end
+
+local TargetDropdown = TabCombat:Dropdown({
+    Title = "Select Target",
+    Desc = "Choose the player for Aimbot to lock onto",
+    Values = playerEntries,
+    Value = "nobody",
+    Multi = false,
+    Callback = function(value)
+        State.SelectedPlayerName = value
+        State.SelectedTarget = GetPlayerFromEntry(value)
+    end,
+})
+
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function()
+        if State.SelectedPlayerName:find("@" .. p.Name .. ")$") then
+            State.SelectedTarget = p
+        end
+    end)
+    local newEntries = { "nobody" }
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl ~= LocalPlayer then
+            table.insert(newEntries, pl.DisplayName .. "(@" .. pl.Name .. ")")
+        end
+    end
+    TargetDropdown:Refresh(newEntries)
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+    local newEntries = { "nobody" }
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl ~= LocalPlayer and pl ~= p then
+            table.insert(newEntries, pl.DisplayName .. "(@" .. pl.Name .. ")")
+        end
+    end
+    TargetDropdown:Refresh(newEntries)
+end)
+
+TabCombat:Button({
+    Title = "Disable Fall Injury",
+    Desc = "Toggles the FallDamage script in your character",
+    Callback = function()
+        local ok, result = pcall(function()
+            return Workspace[LocalPlayer.Name].FallDamage
+        end)
+        if not ok or not result then
+            WindUI:Notify({
+                Title = "Fall Injury",
+                Content = "FallDamage script not found in your character.",
+                Duration = 4,
+                Icon = "x",
+            })
+            return
+        end
+        if result.Enabled then
+            result.Enabled = false
+            WindUI:Notify({
+                Title = "Fall Injury",
+                Content = "Fall injury disabled!",
+                Duration = 3,
+                Icon = "check",
+            })
+        else
+            result.Enabled = true
+            WindUI:Notify({
+                Title = "Fall Injury",
+                Content = "Fall injury re-enabled.",
+                Duration = 3,
+                Icon = "check",
+            })
+        end
+    end,
+})
+
+-- ============================================================
+-- TAB: ESP
+-- ============================================================
+TabESP:Toggle({
+    Title = "ESP Player Highlight",
+    Desc = "Highlights all players in green (OutlineTransparency 0.3 / FillTransparency 1)",
+    Value = false,
+    Callback = function(enabled)
+        State.EspHighlightEnabled = enabled
+        if enabled then EnableHighlightESP() else ClearHighlights() end
+    end,
+})
+
+TabESP:Toggle({
+    Title = "ESP Nickname",
+    Desc = "Shows @username above each player in white, size 11",
+    Value = false,
+    Callback = function(enabled)
+        State.EspNicknameEnabled = enabled
+        if enabled then EnableNicknameESP() else ClearNicknames() end
+    end,
+})
+
+-- ============================================================
+-- TAB: PICK UP ITEMS
+-- ============================================================
+TabPickup:Toggle({
+    Title = "Notification when the item spawns",
+    Desc = "Notifies when Shield, Katana, L106, Knife, Briefcase or Sledge spawns",
+    Value = false,
+    Callback = function(enabled)
+        State.SpawnNotifyEnabled = enabled
+        if enabled then StartSpawnWatcher() else StopSpawnWatcher() end
+    end,
+})
+
+local items = {
+    { title = "Grab Shield", desc = "Teleports to Shield and triggers ProximityPrompt", name = "Shield" },
+    { title = "Grab Katana", desc = "Teleports to Katana and triggers ProximityPrompt", name = "Katana" },
+    { title = "Grab L106 Gun", desc = "Teleports to L106 and triggers ProximityPrompt", name = "L106" },
+    { title = "Grab Knife", desc = "Teleports to Knife and triggers ProximityPrompt", name = "Knife" },
+    { title = "Grab Briefcase", desc = "Teleports to Briefcase and triggers ProximityPrompt", name = "Briefcase" },
+    { title = "Grab Sledge", desc = "Teleports to Sledge and triggers ProximityPrompt", name = "Sledge" },
+}
+
+for _, item in ipairs(items) do
+    TabPickup:Button({
+        Title = item.title,
+        Desc = item.desc,
+        Callback = function() GrabItem(item.name) end,
+    })
+end
+
+-- ============================================================
+-- STARTUP NOTIFICATION
+-- ============================================================
+WindUI:Notify({
+    Title = "the button",
+    Content = "Script loaded! (FIXED - Aimbot Force + Grab) by: abyssnt",
+    Duration = 4,
+    Icon = "check",
+})

@@ -17,7 +17,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 -- WINDOW
 -- ============================================================
 local Window = WindUI:CreateWindow({
-    Title       = "the button",
+    Title       = "The Button",
     Author      = "by: abyssnt",
     Size        = UDim2.fromOffset(580, 460),
     Theme       = "Dark",
@@ -36,8 +36,7 @@ local State = {
     SpawnNotifyEnabled  = false,
     Highlights          = {},
     NicknameLabels      = {},
-    AimbotSmoothness    = 0.1, -- FIXO em 0.1
-    AutoSafeZoneEnabled = false,
+    AimbotSmoothness    = 0.1,
     IsInSafeZone        = false,
     OriginalPosition    = nil,
 }
@@ -161,7 +160,7 @@ local function StartAimbot()
     StopAimbot()
 
     local lastClickTime = 0
-    local CLICK_COOLDOWN = 10
+    local CLICK_COOLDOWN = 25
 
     ClickConn = Mouse.Button1Down:Connect(function()
         if not State.AimbotEnabled then return end
@@ -403,7 +402,7 @@ local function StartSpawnWatcher()
                 WindUI:Notify({
                     Title = "Item Spawned",
                     Content = "The item " .. w .. " spawned in Workspace",
-                    Duration = 5,
+                    Duration = 3,
                     Icon = "package",
                 })
                 break
@@ -479,7 +478,7 @@ local function GrabItem(itemName)
     if not prompt then
         WindUI:Notify({
             Title = "Not Found",
-            Content = itemName .. " not available in Workspace",
+            Content = itemName .. " not available",
             Duration = 2,
             Icon = "x",
         })
@@ -549,7 +548,7 @@ local TabPickup = Window:Tab({ Title = "Pick Up Items", Icon = "package" })
 -- ============================================================
 TabCombat:Toggle({
     Title = "Aimbot Players",
-    Desc  = "Locks onto selected player's HumanoidRootPart. Wall check only for map objects. Smoothness: 0.1",
+    Desc  = "It looks directly at the player's stomach, if you don't select anyone and turn on the Aimbot, just clicking on someone will cause the Aimbot to start aiming",
     Value = false,
     Callback = function(enabled)
         State.AimbotEnabled = enabled
@@ -579,40 +578,6 @@ TabCombat:Dropdown({
     Callback = function(value)
         State.SelectedPlayerName = value
         State.SelectedTarget     = GetPlayerFromEntry(value)
-    end,
-})
-
-TabCombat:Toggle({
-    Title = "Auto Safe Zone (Low HP)",
-    Desc  = "Teleports to safe zone (115, 49, 564) when HP drops below 20. Returns to original position when disabled.",
-    Value = false,
-    Callback = function(enabled)
-        State.AutoSafeZoneEnabled = enabled
-        if enabled then
-            StartAutoSafeZone()
-            WindUI:Notify({
-                Title = "Auto Safe Zone",
-                Content = "Enabled! Will teleport when HP < 20",
-                Duration = 3,
-                Icon = "shield",
-            })
-        else
-            StopAutoSafeZone()
-            if State.IsInSafeZone and State.OriginalPosition then
-                local root = GetRoot(LocalPlayer)
-                if root then
-                    root.CFrame = State.OriginalPosition
-                    WindUI:Notify({
-                        Title = "Auto Safe Zone",
-                        Content = "Returned to original position",
-                        Duration = 3,
-                        Icon = "check",
-                    })
-                end
-                State.IsInSafeZone = false
-                State.OriginalPosition = nil
-            end
-        end
     end,
 })
 
@@ -675,12 +640,10 @@ TabESP:Toggle({
     end,
 })
 
--- ============================================================
 -- TAB: PICK UP ITEMS
--- ============================================================
 TabPickup:Toggle({
     Title = "Notification when the item spawns",
-    Desc  = "Notifies when Shield, Katana, L106, Knife, Briefcase or Sledge spawns in Workspace (ignores player inventories)",
+    Desc  = "Notifies when Shield, Katana, L106, Knife, Briefcase or Sledge spawns in map",
     Value = false,
     Callback = function(enabled)
         State.SpawnNotifyEnabled = enabled
@@ -690,31 +653,31 @@ TabPickup:Toggle({
 
 TabPickup:Button({
     Title    = "Grab Shield",
-    Desc     = "Teleports to Shield in Workspace and activates its ProximityPrompt to pick it up instantly.",
+    Desc     = "Teleports to Shield Whoever has it available, grab it and come back",
     Callback = function() GrabItem("Shield") end,
 })
 
 TabPickup:Button({
     Title    = "Grab Katana",
-    Desc     = "Teleports to Katana in Workspace and activates its ProximityPrompt to pick it up instantly.",
+    Desc     = "Teleports to Katana Whoever has it available, grab it and come back",
     Callback = function() GrabItem("Katana") end,
 })
 
 TabPickup:Button({
     Title    = "Grab L106 Gun",
-    Desc     = "Teleports to L106 in Workspace and activates its ProximityPrompt to pick it up instantly.",
+    Desc     = "Teleports to L106 Whoever has it available, grab it and come back",
     Callback = function() GrabItem("L106") end,
 })
 
 TabPickup:Button({
     Title    = "Grab Knife",
-    Desc     = "Teleports to Knife in Workspace and activates its ProximityPrompt to pick it up instantly.",
+    Desc     = "Teleports to Knife Whoever has it available, grab it and come back",
     Callback = function() GrabItem("Knife") end,
 })
 
 TabPickup:Button({
     Title    = "Grab Briefcase",
-    Desc     = "Teleports to Briefcase in Workspace and activates its ProximityPrompt to pick it up instantly.",
+    Desc     = "Teleports to Briefcase Whoever has it available, grab it and come back",
     Callback = function() GrabItem("Briefcase") end,
 })
 
@@ -728,8 +691,8 @@ TabPickup:Button({
 -- STARTUP NOTIFICATION
 -- ============================================================
 WindUI:Notify({
-    Title    = "the button",
-    Content  = "Script loaded! (Workspace Only + Smooth 0.1) by: abyssnt",
-    Duration = 4,
+    Title    = "The Button",
+    Content  = "Script loaded by: abyssnt",
+    Duration = 2,
     Icon     = "check",
 })

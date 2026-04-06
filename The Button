@@ -425,7 +425,7 @@ local function GrabItem(itemName)
     if not prompt then
         WindUI:Notify({
             Title = "Not Found",
-            Content = itemName .. " not available in Workspace",
+            Content = itemName .. " not available",
             Duration = 2,
             Icon = "x",
         })
@@ -594,14 +594,14 @@ local function StartAntiVoid()
 
         if lastY > 0 then
             local deltaY = currentY - lastY
-            if deltaY < -15 then
+            if deltaY < -20 then
                 fallingSpeed = math.abs(deltaY)
                 root.Velocity = Vector3.new(root.Velocity.X, fallingSpeed, root.Velocity.Z)
 
                 WindUI:Notify({
                     Title = "Anti-Void",
                     Content = "Void detected! Launching up...",
-                    Duration = 2,
+                    Duration = 1,
                     Icon = "shield",
                 })
             end
@@ -624,7 +624,7 @@ local TabLocal  = Window:Tab({ Title = "Local Player", Icon = "user" })
 -- ============================================================
 TabCombat:Toggle({
     Title = "Aimbot Players",
-    Desc  = "Locks onto selected player's HumanoidRootPart. Wall check only for map objects. Smoothness: 0.1",
+    Desc  = "It looks directly at the person you click on if you don't select a target, After 25 seconds with the Aimbot turned on, you can click on another person; otherwise, turn it off and on again",
     Value = false,
     Callback = function(enabled)
         State.AimbotEnabled = enabled
@@ -698,7 +698,7 @@ TabCombat:Button({
 -- ============================================================
 TabESP:Toggle({
     Title = "ESP Player Highlight",
-    Desc  = "Highlights all players in green (OutlineTransparency 0.3 / FillTransparency 1)",
+    Desc  = "Highlights all players in green",
     Value = false,
     Callback = function(enabled)
         State.EspHighlightEnabled = enabled
@@ -740,7 +740,7 @@ TabPickup:Dropdown({
         WindUI:Notify({
             Title    = "Grab Mode",
             Content  = "Changed to: " .. value,
-            Duration = 2,
+            Duration = 1,
             Icon     = "settings",
         })
     end,
@@ -799,7 +799,7 @@ TabPickup:Button({
 -- ============================================================
 TabLocal:Toggle({
     Title = "TpWalk 1",
-    Desc  = "Teleports your character forward while walking. Speed: 0.3 stud per tick.",
+    Desc  = "It makes you a little faster",
     Value = false,
     Callback = function(enabled)
         State.TpWalkEnabled = enabled
@@ -813,7 +813,7 @@ TabLocal:Toggle({
 
 TabLocal:Toggle({
     Title = "Noclip",
-    Desc  = "Disables collision for your character, allowing you to walk through walls.",
+    Desc  = "Disables collision for your character, allowing you to walk through walls",
     Value = false,
     Callback = function(enabled)
         State.NoclipEnabled = enabled
@@ -826,7 +826,7 @@ TabLocal:Toggle({
 })
 
 TabLocal:Toggle({
-    Title = "Anti-Void",
+    Title = "Anti-Void [Beta]",
     Desc  = "Detects when falling into void and launches you back up at the same speed.",
     Value = false,
     Callback = function(enabled)
@@ -845,6 +845,6 @@ TabLocal:Toggle({
 WindUI:Notify({
     Title    = "The Button",
     Content  = "Script loaded! by: abyssnt",
-    Duration = 4,
+    Duration = 2,
     Icon     = "check",
 })

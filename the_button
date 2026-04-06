@@ -17,7 +17,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 -- WINDOW
 -- ============================================================
 local Window = WindUI:CreateWindow({
-    Title       = "the button",
+    Title       = "The Button",
     Author      = "by: abyssnt",
     Size        = UDim2.fromOffset(580, 460),
     Theme       = "Dark",
@@ -113,7 +113,7 @@ local function StartAimbot()
     StopAimbot()
 
     local lastClickTime = 0
-    local CLICK_COOLDOWN = 10
+    local CLICK_COOLDOWN = 25
 
     ClickConn = Mouse.Button1Down:Connect(function()
         if not State.AimbotEnabled then return end
@@ -824,8 +824,8 @@ TabLocal:Toggle({
 -- STARTUP NOTIFICATION
 -- ============================================================
 WindUI:Notify({
-    Title    = "the button",
-    Content  = "Script loaded! (Local Player + Vest) by: abyssnt",
-    Duration = 4,
+    Title    = "The Button",
+    Content  = "Script loaded! by: abyssnt",
+    Duration = 3,
     Icon     = "check",
 })

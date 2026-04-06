@@ -17,7 +17,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 -- WINDOW
 -- ============================================================
 local Window = WindUI:CreateWindow({
-    Title       = "the button",
+    Title       = "The Button",
     Author      = "by: abyssnt",
     Size        = UDim2.fromOffset(580, 460),
     Theme       = "Dark",
@@ -113,7 +113,7 @@ local function StartAimbot()
     StopAimbot()
 
     local lastClickTime = 0
-    local CLICK_COOLDOWN = 10
+    local CLICK_COOLDOWN = 25
 
     ClickConn = Mouse.Button1Down:Connect(function()
         if not State.AimbotEnabled then return end
@@ -291,7 +291,7 @@ end)
 -- ============================================================
 -- ITEM SPAWN WATCHER
 -- ============================================================
-local WATCH_ITEMS = { "Shield", "Katana", "L106", "Knife", "Briefcase", "Sledge" }
+local WATCH_ITEMS = { "Shield", "Katana", "L106", "Knife", "Briefcase", "Sledge", "Vest" }
 local SpawnConns = {}
 
 local function IsInWorkspace(obj)
@@ -580,7 +580,7 @@ local function StartAntiVoid()
         -- Detecta queda rápida (void)
         if lastY > 0 then
             local deltaY = currentY - lastY
-            if deltaY < -20 then
+            if deltaY < -40 then
                 -- Caindo muito rápido (provavelmente void)
                 fallingSpeed = math.abs(deltaY)
                 -- Arremessa para cima na mesma velocidade
@@ -807,9 +807,11 @@ TabLocal:Toggle({
 -- ============================================================
 -- STARTUP NOTIFICATION
 -- ============================================================
+
+task.wait(1)
 WindUI:Notify({
-    Title    = "the button",
-    Content  = "Script loaded! (Local Player + Vest) by: abyssnt",
-    Duration = 4,
+    Title    = "The Button",
+    Content  = "Script loaded! by: abyssnt",
+    Duration = 3,
     Icon     = "check",
 })

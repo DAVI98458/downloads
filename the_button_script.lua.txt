@@ -17,7 +17,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 -- WINDOW
 -- ============================================================
 local Window = WindUI:CreateWindow({
-    Title       = "the button",
+    Title       = "The Button",
     Author      = "by: abyssnt",
     Size        = UDim2.fromOffset(580, 460),
     Theme       = "Dark",
@@ -114,7 +114,7 @@ local function StartAimbot()
     StopAimbot()
 
     local lastClickTime = 0
-    local CLICK_COOLDOWN = 10
+    local CLICK_COOLDOWN = 25
 
     ClickConn = Mouse.Button1Down:Connect(function()
         if not State.AimbotEnabled then return end
@@ -292,7 +292,7 @@ end)
 -- ============================================================
 -- ITEM SPAWN WATCHER
 -- ============================================================
-local WATCH_ITEMS = { "Shield", "Katana", "L106", "Knife", "Briefcase", "Sledge", "Vest", "Bandagem" }
+local WATCH_ITEMS = { "Shield", "Katana", "L106", "Knife", "Briefcase", "Sledge", "Vest", "Bandage" }
 local SpawnConns = {}
 
 local function IsInWorkspace(obj)
@@ -580,7 +580,7 @@ local function StartAntiVoid()
 
         if currentY < -100 then
             root.Velocity = Vector3.new(root.Velocity.X, 100, root.Velocity.Z)
-            root.CFrame = root.CFrame + Vector3.new(0, 20, 0)
+            root.CFrame = root.CFrame + Vector3.new(0, 80, 0)
 
             WindUI:Notify({
                 Title = "Anti-Void",
@@ -594,7 +594,7 @@ local function StartAntiVoid()
 
         if lastY > 0 then
             local deltaY = currentY - lastY
-            if deltaY < -10 then
+            if deltaY < -15 then
                 fallingSpeed = math.abs(deltaY)
                 root.Velocity = Vector3.new(root.Velocity.X, fallingSpeed, root.Velocity.Z)
 
@@ -789,9 +789,9 @@ TabPickup:Button({
 })
 
 TabPickup:Button({
-    Title    = "Grab Bandagem",
+    Title    = "Grab Bandage",
     Desc     = "Teleports to Bandagem in Workspace and activates its ProximityPrompt to pick it up instantly.",
-    Callback = function() GrabItem("Bandagem") end,
+    Callback = function() GrabItem("Bandage") end,
 })
 
 -- ============================================================
@@ -843,7 +843,7 @@ TabLocal:Toggle({
 -- STARTUP NOTIFICATION
 -- ============================================================
 WindUI:Notify({
-    Title    = "the button",
+    Title    = "The Button",
     Content  = "Script loaded! by: abyssnt",
     Duration = 4,
     Icon     = "check",

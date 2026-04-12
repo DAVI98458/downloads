@@ -1,0 +1,1042 @@
+-- ============================================================
+--  ECLIPSE HUB  v1.0
+--  Feito por: CARLTX IMORTAL
+--  LocalScript → StarterGui
+-- ============================================================
+
+local Players          = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService     = game:GetService("TweenService")
+local TextChatService  = game:GetService("TextChatService")
+
+local player    = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ============================================================
+--  ENVIO DE MENSAGEM
+-- ============================================================
+local function sendChat(msg)
+    local ok = pcall(function()
+        local ch = TextChatService:FindFirstChild("TextChannels")
+        if ch then
+            local g = ch:FindFirstChild("RBXGeneral")
+            if g then g:SendAsync(msg) end
+        end
+    end)
+    if not ok then
+        pcall(function()
+            game:GetService("ReplicatedStorage")
+                :WaitForChild("DefaultChatSystemChatEvents",3)
+                :WaitForChild("SayMessageRequest"):FireServer(msg,"All")
+        end)
+    end
+end
+local function sendPrivate(name,msg) sendChat("/w "..name.." "..msg) end
+
+-- ============================================================
+--  SCREEN GUI
+-- ============================================================
+local SG = Instance.new("ScreenGui")
+SG.Name           = "ECLIPSE_HUB"
+SG.ResetOnSpawn   = false
+SG.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+SG.IgnoreGuiInset = true
+SG.Parent         = playerGui
+
+-- ============================================================
+--  SPLASH SCREEN
+-- ============================================================
+local splash = Instance.new("Frame",SG)
+splash.Size             = UDim2.new(1,0,1,0)
+splash.BackgroundColor3 = Color3.fromRGB(6,6,10)
+splash.BorderSizePixel  = 0
+splash.ZIndex           = 200
+
+-- logo neon (recriado em formas)
+local logoOuter = Instance.new("Frame",splash)
+logoOuter.Size             = UDim2.new(0,90,0,90)
+logoOuter.Position         = UDim2.new(0.5,-45,0.5,-130)
+logoOuter.BackgroundColor3 = Color3.fromRGB(0,140,255)
+logoOuter.BorderSizePixel  = 0
+logoOuter.ZIndex           = 201
+logoOuter.Rotation         = 45
+Instance.new("UICorner",logoOuter).CornerRadius = UDim.new(0,8)
+
+local logoInner = Instance.new("Frame",splash)
+logoInner.Size             = UDim2.new(0,58,0,58)
+logoInner.Position         = UDim2.new(0.5,-29,0.5,-109)
+logoInner.BackgroundColor3 = Color3.fromRGB(6,6,10)
+logoInner.BorderSizePixel  = 0
+logoInner.ZIndex           = 202
+logoInner.Rotation         = 45
+Instance.new("UICorner",logoInner).CornerRadius = UDim.new(0,6)
+
+local logoArrow = Instance.new("TextLabel",splash)
+logoArrow.Size               = UDim2.new(0,44,0,44)
+logoArrow.Position           = UDim2.new(0.5,-22,0.5,-112)
+logoArrow.BackgroundTransparency = 1
+logoArrow.Text               = "⬆"
+logoArrow.TextColor3         = Color3.fromRGB(0,200,255)
+logoArrow.Font               = Enum.Font.GothamBold
+logoArrow.TextSize            = 28
+logoArrow.ZIndex              = 203
+
+-- glow effect
+local glow = Instance.new("Frame",splash)
+glow.Size             = UDim2.new(0,120,0,120)
+glow.Position         = UDim2.new(0.5,-60,0.5,-150)
+glow.BackgroundColor3 = Color3.fromRGB(0,120,255)
+glow.BackgroundTransparency = 0.85
+glow.BorderSizePixel  = 0
+glow.ZIndex           = 200
+Instance.new("UICorner",glow).CornerRadius = UDim.new(0,60)
+
+local titleSplash = Instance.new("TextLabel",splash)
+titleSplash.Size               = UDim2.new(0,360,0,40)
+titleSplash.Position           = UDim2.new(0.5,-180,0.5,-22)
+titleSplash.BackgroundTransparency = 1
+titleSplash.Text               = "ECLIPSE HUB"
+titleSplash.TextColor3         = Color3.fromRGB(0,210,255)
+titleSplash.Font               = Enum.Font.GothamBold
+titleSplash.TextSize            = 26
+titleSplash.ZIndex              = 201
+
+local subSplash = Instance.new("TextLabel",splash)
+subSplash.Size               = UDim2.new(0,360,0,22)
+subSplash.Position           = UDim2.new(0.5,-180,0.5,22)
+subSplash.BackgroundTransparency = 1
+subSplash.Text               = "Carregando módulos..."
+subSplash.TextColor3         = Color3.fromRGB(110,110,135)
+subSplash.Font               = Enum.Font.Gotham
+subSplash.TextSize            = 12
+subSplash.ZIndex              = 201
+
+-- barra progresso
+local barBg = Instance.new("Frame",splash)
+barBg.Size             = UDim2.new(0,280,0,5)
+barBg.Position         = UDim2.new(0.5,-140,0.5,56)
+barBg.BackgroundColor3 = Color3.fromRGB(28,28,38)
+barBg.BorderSizePixel  = 0
+barBg.ZIndex           = 201
+Instance.new("UICorner",barBg).CornerRadius = UDim.new(0,3)
+
+local barFill = Instance.new("Frame",barBg)
+barFill.Size             = UDim2.new(0,0,1,0)
+barFill.BackgroundColor3 = Color3.fromRGB(0,210,255)
+barFill.BorderSizePixel  = 0
+barFill.ZIndex           = 202
+Instance.new("UICorner",barFill).CornerRadius = UDim.new(0,3)
+
+-- feito por
+local madeBy = Instance.new("TextLabel",splash)
+madeBy.Size               = UDim2.new(0,360,0,20)
+madeBy.Position           = UDim2.new(0.5,-180,0.5,74)
+madeBy.BackgroundTransparency = 1
+madeBy.Text               = "Feito por: CARLTX IMORTAL"
+madeBy.TextColor3         = Color3.fromRGB(0,180,220)
+madeBy.Font               = Enum.Font.GothamBold
+madeBy.TextSize            = 11
+madeBy.ZIndex              = 201
+
+-- discord
+local discSplash = Instance.new("TextLabel",splash)
+discSplash.Size               = UDim2.new(0,360,0,18)
+discSplash.Position           = UDim2.new(0.5,-180,0.5,98)
+discSplash.BackgroundTransparency = 1
+discSplash.Text               = "discord.gg/WVbXnrm7ca"
+discSplash.TextColor3         = Color3.fromRGB(88,101,242)
+discSplash.Font               = Enum.Font.Code
+discSplash.TextSize            = 11
+discSplash.ZIndex              = 201
+
+-- youtube
+local ytSplash = Instance.new("TextLabel",splash)
+ytSplash.Size               = UDim2.new(0,360,0,18)
+ytSplash.Position           = UDim2.new(0.5,-180,0.5,118)
+ytSplash.BackgroundTransparency = 1
+ytSplash.Text               = "youtube.com/@carltx900.0"
+ytSplash.TextColor3         = Color3.fromRGB(255,70,70)
+ytSplash.Font               = Enum.Font.Code
+ytSplash.TextSize            = 11
+ytSplash.ZIndex              = 201
+
+-- versão
+local verSplash = Instance.new("TextLabel",splash)
+verSplash.Size               = UDim2.new(0,360,0,16)
+verSplash.Position           = UDim2.new(0.5,-180,0.5,140)
+verSplash.BackgroundTransparency = 1
+verSplash.Text               = "Version: v1.0"
+verSplash.TextColor3         = Color3.fromRGB(80,80,100)
+verSplash.Font               = Enum.Font.Gotham
+verSplash.TextSize            = 10
+verSplash.ZIndex              = 201
+
+-- animação splash
+task.spawn(function()
+    TweenService:Create(barFill,TweenInfo.new(2.8,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+        {Size=UDim2.new(1,0,1,0)}):Play()
+    local steps={"Iniciando hub...","Carregando chat...","Aplicando módulos...","Pronto!"}
+    for _,s in ipairs(steps) do task.wait(2.8/4); subSplash.Text=s end
+    task.wait(0.3)
+    TweenService:Create(splash,TweenInfo.new(0.5),{BackgroundTransparency=1}):Play()
+    for _,v in ipairs(splash:GetDescendants()) do
+        pcall(function()
+            if v:IsA("TextLabel") then
+                TweenService:Create(v,TweenInfo.new(0.5),{TextTransparency=1}):Play()
+            elseif v:IsA("Frame") then
+                TweenService:Create(v,TweenInfo.new(0.5),{BackgroundTransparency=1}):Play()
+            end
+        end)
+    end
+    task.wait(0.6); splash:Destroy()
+end)
+
+-- ============================================================
+--  BOLINHA (minimizado)
+-- ============================================================
+local bubble = Instance.new("TextButton",SG)
+bubble.Size             = UDim2.new(0,120,0,34)
+bubble.Position         = UDim2.new(0,14,0,14)
+bubble.BackgroundColor3 = Color3.fromRGB(14,14,20)
+bubble.Text             = "◈  ECLIPSE HUB"
+bubble.TextColor3       = Color3.fromRGB(0,210,255)
+bubble.Font             = Enum.Font.GothamBold
+bubble.TextSize          = 11
+bubble.BorderSizePixel   = 0
+bubble.Visible           = false
+bubble.ZIndex            = 10
+Instance.new("UICorner",bubble).CornerRadius = UDim.new(0,17)
+local bubStroke = Instance.new("UIStroke",bubble)
+bubStroke.Color=Color3.fromRGB(0,180,255); bubStroke.Thickness=1.2
+
+-- ============================================================
+--  JANELA PRINCIPAL
+-- ============================================================
+local WIN_W, WIN_H = 400, 540
+
+local win = Instance.new("Frame",SG)
+win.Name            = "EclipseWin"
+win.Size            = UDim2.new(0,WIN_W,0,WIN_H)
+win.Position        = UDim2.new(0.5,-WIN_W/2,0.5,-WIN_H/2)
+win.BackgroundColor3= Color3.fromRGB(16,16,22)
+win.BorderSizePixel = 0
+win.Active          = true
+win.Draggable       = true
+win.Visible         = false
+Instance.new("UICorner",win).CornerRadius = UDim.new(0,16)
+local winStroke = Instance.new("UIStroke",win)
+winStroke.Color=Color3.fromRGB(0,150,200); winStroke.Thickness=1.5
+
+-- ---- TÍTULO ----
+local titleBar = Instance.new("Frame",win)
+titleBar.Size             = UDim2.new(1,0,0,52)
+titleBar.BackgroundColor3 = Color3.fromRGB(10,10,16)
+titleBar.BorderSizePixel  = 0
+Instance.new("UICorner",titleBar).CornerRadius = UDim.new(0,16)
+
+local tFix = Instance.new("Frame",titleBar)
+tFix.Size=UDim2.new(1,0,0,16); tFix.Position=UDim2.new(0,0,1,-16)
+tFix.BackgroundColor3=Color3.fromRGB(10,10,16); tFix.BorderSizePixel=0
+
+-- linha topo
+local accentTop = Instance.new("Frame",titleBar)
+accentTop.Size=UDim2.new(1,0,0,2); accentTop.BackgroundColor3=Color3.fromRGB(0,180,255)
+accentTop.BorderSizePixel=0
+Instance.new("UICorner",accentTop).CornerRadius=UDim.new(0,16)
+
+-- ---- PERFIL DO USUÁRIO ----
+local avatarFrame = Instance.new("Frame",titleBar)
+avatarFrame.Size             = UDim2.new(0,36,0,36)
+avatarFrame.Position         = UDim2.new(0,10,0.5,-18)
+avatarFrame.BackgroundColor3 = Color3.fromRGB(30,30,42)
+avatarFrame.BorderSizePixel  = 0
+Instance.new("UICorner",avatarFrame).CornerRadius = UDim.new(0,18)
+local avStroke = Instance.new("UIStroke",avatarFrame)
+avStroke.Color=Color3.fromRGB(0,180,255); avStroke.Thickness=1.5
+
+-- avatar (tenta carregar thumbnail, fallback = bacon emoji)
+local avatarImg = Instance.new("ImageLabel",avatarFrame)
+avatarImg.Size               = UDim2.new(1,0,1,0)
+avatarImg.BackgroundTransparency = 1
+avatarImg.ScaleType          = Enum.ScaleType.Crop
+Instance.new("UICorner",avatarImg).CornerRadius = UDim.new(0,18)
+
+-- bacon fallback
+local baconLbl = Instance.new("TextLabel",avatarFrame)
+baconLbl.Size               = UDim2.new(1,0,1,0)
+baconLbl.BackgroundTransparency = 1
+baconLbl.Text               = "🥓"
+baconLbl.TextSize            = 20
+baconLbl.Font               = Enum.Font.Gotham
+baconLbl.Visible            = true
+
+task.spawn(function()
+    local uid = player.UserId
+    local url = "https://www.roblox.com/headshot-thumbnail/image?userId="..uid.."&width=48&height=48&format=png"
+    local ok, img = pcall(function()
+        return Players:GetUserThumbnailAsync(uid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
+    end)
+    if ok and img then
+        avatarImg.Image = img
+        baconLbl.Visible = false
+    end
+end)
+
+-- nome do usuário
+local welcomeLbl = Instance.new("TextLabel",titleBar)
+welcomeLbl.Size               = UDim2.new(0,160,0,14)
+welcomeLbl.Position           = UDim2.new(0,52,0,10)
+welcomeLbl.BackgroundTransparency = 1
+welcomeLbl.Text               = "Bem-vindo,"
+welcomeLbl.TextColor3         = Color3.fromRGB(100,100,120)
+welcomeLbl.Font               = Enum.Font.Gotham
+welcomeLbl.TextSize            = 10
+welcomeLbl.TextXAlignment      = Enum.TextXAlignment.Left
+
+local usernameLbl = Instance.new("TextLabel",titleBar)
+usernameLbl.Size               = UDim2.new(0,160,0,16)
+usernameLbl.Position           = UDim2.new(0,52,0,24)
+usernameLbl.BackgroundTransparency = 1
+usernameLbl.Text               = player.DisplayName
+usernameLbl.TextColor3         = Color3.fromRGB(0,210,255)
+usernameLbl.Font               = Enum.Font.GothamBold
+usernameLbl.TextSize            = 13
+usernameLbl.TextXAlignment      = Enum.TextXAlignment.Left
+
+-- olhinho privado
+local eyeBtn = Instance.new("TextButton",titleBar)
+eyeBtn.Size             = UDim2.new(0,26,0,26)
+eyeBtn.Position         = UDim2.new(1,-106,0.5,-13)
+eyeBtn.BackgroundColor3 = Color3.fromRGB(28,28,40)
+eyeBtn.Text             = "👁"
+eyeBtn.TextSize          = 14
+eyeBtn.Font             = Enum.Font.Gotham
+eyeBtn.BorderSizePixel   = 0
+Instance.new("UICorner",eyeBtn).CornerRadius = UDim.new(0,8)
+
+local privMode = false
+eyeBtn.MouseButton1Click:Connect(function()
+    privMode = not privMode
+    if privMode then
+        avatarFrame.Visible = false
+        welcomeLbl.Visible  = false
+        usernameLbl.Text    = "••••••••"
+        eyeBtn.Text         = "🚫"
+    else
+        avatarFrame.Visible = true
+        welcomeLbl.Visible  = true
+        usernameLbl.Text    = player.DisplayName
+        eyeBtn.Text         = "👁"
+    end
+end)
+
+-- botões de janela: minimizar, expandir, fechar→bolinha
+local function makeWinBtn(icon, posX, col)
+    local b = Instance.new("TextButton",titleBar)
+    b.Size             = UDim2.new(0,24,0,24)
+    b.Position         = UDim2.new(1,posX,0.5,-12)
+    b.BackgroundColor3 = col
+    b.Text             = icon
+    b.TextColor3       = Color3.fromRGB(255,255,255)
+    b.Font             = Enum.Font.GothamBold
+    b.TextSize          = 12
+    b.BorderSizePixel   = 0
+    Instance.new("UICorner",b).CornerRadius = UDim.new(0,7)
+    return b
+end
+
+local btnClose  = makeWinBtn("✕",-32,Color3.fromRGB(200,50,50))
+local btnExpand = makeWinBtn("□",-60,Color3.fromRGB(40,120,180))
+local btnMin    = makeWinBtn("–",-88,Color3.fromRGB(40,40,58))
+
+-- ============================================================
+--  BARRA DE PESQUISA
+-- ============================================================
+local searchBg = Instance.new("Frame",win)
+searchBg.Size             = UDim2.new(1,-24,0,32)
+searchBg.Position         = UDim2.new(0,12,0,56)
+searchBg.BackgroundColor3 = Color3.fromRGB(24,24,34)
+searchBg.BorderSizePixel  = 0
+Instance.new("UICorner",searchBg).CornerRadius = UDim.new(0,10)
+local searchStroke = Instance.new("UIStroke",searchBg)
+searchStroke.Color=Color3.fromRGB(50,50,70); searchStroke.Thickness=1
+
+local searchIcon = Instance.new("TextLabel",searchBg)
+searchIcon.Size=UDim2.new(0,28,1,0); searchIcon.BackgroundTransparency=1
+searchIcon.Text="🔍"; searchIcon.TextSize=13; searchIcon.Font=Enum.Font.Gotham
+
+local searchBox = Instance.new("TextBox",searchBg)
+searchBox.Size               = UDim2.new(1,-32,1,0)
+searchBox.Position           = UDim2.new(0,28,0,0)
+searchBox.BackgroundTransparency = 1
+searchBox.PlaceholderText    = "Pesquisar função..."
+searchBox.PlaceholderColor3  = Color3.fromRGB(70,70,90)
+searchBox.Text               = ""
+searchBox.TextColor3         = Color3.fromRGB(210,210,220)
+searchBox.Font               = Enum.Font.Gotham
+searchBox.TextSize            = 12
+searchBox.TextXAlignment      = Enum.TextXAlignment.Left
+searchBox.ClearTextOnFocus    = false
+
+searchBox.Focused:Connect(function()
+    TweenService:Create(searchStroke,TweenInfo.new(0.2),{Color=Color3.fromRGB(0,180,255)}):Play()
+end)
+searchBox.FocusLost:Connect(function()
+    TweenService:Create(searchStroke,TweenInfo.new(0.2),{Color=Color3.fromRGB(50,50,70)}):Play()
+end)
+
+-- ============================================================
+--  CATEGORIAS (sidebar)
+-- ============================================================
+local CATS = {
+    {name="Player", icon="👤"},
+    {name="Chat",   icon="💬"},
+    {name="Info",   icon="ℹ"},
+}
+
+local sidebar = Instance.new("Frame",win)
+sidebar.Size             = UDim2.new(0,80,1,-96)
+sidebar.Position         = UDim2.new(0,0,0,96)
+sidebar.BackgroundColor3 = Color3.fromRGB(10,10,16)
+sidebar.BorderSizePixel  = 0
+
+local sideCorner = Instance.new("UICorner",sidebar)
+sideCorner.CornerRadius = UDim.new(0,16)
+
+local sideFix = Instance.new("Frame",sidebar)
+sideFix.Size=UDim2.new(1,0,0,16); sideFix.Position=UDim2.new(0,0,0,0)
+sideFix.BackgroundColor3=Color3.fromRGB(10,10,16); sideFix.BorderSizePixel=0
+
+local sideFixR = Instance.new("Frame",sidebar)
+sideFixR.Size=UDim2.new(0,16,1,0); sideFixR.Position=UDim2.new(1,-16,0,0)
+sideFixR.BackgroundColor3=Color3.fromRGB(10,10,16); sideFixR.BorderSizePixel=0
+
+local sideLayout = Instance.new("UIListLayout",sidebar)
+sideLayout.SortOrder=Enum.SortOrder.LayoutOrder; sideLayout.Padding=UDim.new(0,4)
+local sidePad = Instance.new("UIPadding",sidebar)
+sidePad.PaddingTop=UDim.new(0,8); sidePad.PaddingLeft=UDim.new(0,6)
+sidePad.PaddingRight=UDim.new(0,6)
+
+-- área de conteúdo
+local contentArea = Instance.new("Frame",win)
+contentArea.Size             = UDim2.new(1,-88,1,-96)
+contentArea.Position         = UDim2.new(0,84,0,96)
+contentArea.BackgroundTransparency = 1
+contentArea.BorderSizePixel  = 0
+
+local catBtns  = {}
+local catPages = {}
+local currentCat = 1
+
+local function makeCatPage()
+    local sf = Instance.new("ScrollingFrame",contentArea)
+    sf.Size                = UDim2.new(1,-4,1,0)
+    sf.Position            = UDim2.new(0,0,0,0)
+    sf.BackgroundTransparency = 1
+    sf.BorderSizePixel     = 0
+    sf.ScrollBarThickness  = 3
+    sf.ScrollBarImageColor3= Color3.fromRGB(0,160,210)
+    sf.CanvasSize          = UDim2.new(0,0,0,0)
+    sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    sf.Visible             = false
+    local pad = Instance.new("UIPadding",sf)
+    pad.PaddingTop=UDim.new(0,6); pad.PaddingRight=UDim.new(0,6); pad.PaddingBottom=UDim.new(0,12)
+    local layout = Instance.new("UIListLayout",sf)
+    layout.SortOrder=Enum.SortOrder.LayoutOrder; layout.Padding=UDim.new(0,6)
+    return sf
+end
+
+for i,cat in ipairs(CATS) do
+    local btn = Instance.new("TextButton",sidebar)
+    btn.Size             = UDim2.new(1,0,0,58)
+    btn.BackgroundColor3 = Color3.fromRGB(18,18,28)
+    btn.BorderSizePixel  = 0
+    btn.LayoutOrder      = i
+    Instance.new("UICorner",btn).CornerRadius = UDim.new(0,10)
+
+    local ic = Instance.new("TextLabel",btn)
+    ic.Size=UDim2.new(1,0,0,26); ic.Position=UDim2.new(0,0,0,6)
+    ic.BackgroundTransparency=1; ic.Text=cat.icon
+    ic.TextSize=20; ic.Font=Enum.Font.Gotham
+
+    local nm = Instance.new("TextLabel",btn)
+    nm.Size=UDim2.new(1,0,0,16); nm.Position=UDim2.new(0,0,0,32)
+    nm.BackgroundTransparency=1; nm.Text=cat.name
+    nm.TextColor3=Color3.fromRGB(110,110,130)
+    nm.Font=Enum.Font.Gotham; nm.TextSize=9
+
+    catBtns[i]  = btn
+    catPages[i] = makeCatPage()
+
+    btn.MouseButton1Click:Connect(function()
+        currentCat = i
+        for j,b in ipairs(catBtns) do
+            if j==i then
+                TweenService:Create(b,TweenInfo.new(0.2),{BackgroundColor3=Color3.fromRGB(0,100,160)}):Play()
+                nm.TextColor3=Color3.fromRGB(255,255,255)
+            else
+                TweenService:Create(b,TweenInfo.new(0.2),{BackgroundColor3=Color3.fromRGB(18,18,28)}):Play()
+                local nm2 = b:FindFirstChildOfClass("TextLabel")
+                if nm2 then
+                    for _,c in ipairs(b:GetChildren()) do
+                        if c:IsA("TextLabel") and c.TextSize==9 then
+                            c.TextColor3=Color3.fromRGB(110,110,130)
+                        end
+                    end
+                end
+            end
+            catPages[j].Visible = (j==i)
+        end
+    end)
+end
+
+-- ============================================================
+--  HELPERS PARA PÁGINAS
+-- ============================================================
+local function secTitle(pg,txt,ord)
+    local l=Instance.new("TextLabel",pg)
+    l.Size=UDim2.new(1,0,0,20); l.BackgroundTransparency=1
+    l.Text="[ "..txt.." ]"; l.TextColor3=Color3.fromRGB(0,200,255)
+    l.Font=Enum.Font.GothamBold; l.TextSize=11
+    l.TextXAlignment=Enum.TextXAlignment.Left; l.LayoutOrder=ord or 1
+    return l
+end
+local function smLbl(pg,txt,ord)
+    local l=Instance.new("TextLabel",pg)
+    l.Size=UDim2.new(1,0,0,15); l.BackgroundTransparency=1
+    l.Text=txt; l.TextColor3=Color3.fromRGB(140,140,158)
+    l.Font=Enum.Font.Gotham; l.TextSize=11
+    l.TextXAlignment=Enum.TextXAlignment.Left; l.LayoutOrder=ord or 2
+    return l
+end
+local function mkBox(pg,ph,def,ord)
+    local bg=Instance.new("Frame",pg)
+    bg.Size=UDim2.new(1,0,0,32); bg.BackgroundColor3=Color3.fromRGB(24,24,34)
+    bg.BorderSizePixel=0; bg.LayoutOrder=ord or 3
+    Instance.new("UICorner",bg).CornerRadius=UDim.new(0,8)
+    local sk=Instance.new("UIStroke",bg); sk.Color=Color3.fromRGB(55,55,75); sk.Thickness=1
+    local bx=Instance.new("TextBox",bg)
+    bx.Size=UDim2.new(1,-12,1,0); bx.Position=UDim2.new(0,6,0,0)
+    bx.BackgroundTransparency=1; bx.PlaceholderText=ph or ""
+    bx.PlaceholderColor3=Color3.fromRGB(70,70,90)
+    bx.Text=def or ""; bx.TextColor3=Color3.fromRGB(215,215,225)
+    bx.Font=Enum.Font.Code; bx.TextSize=12
+    bx.TextXAlignment=Enum.TextXAlignment.Left; bx.ClearTextOnFocus=false
+    bx.Focused:Connect(function() TweenService:Create(sk,TweenInfo.new(0.2),{Color=Color3.fromRGB(0,200,255)}):Play() end)
+    bx.FocusLost:Connect(function() TweenService:Create(sk,TweenInfo.new(0.2),{Color=Color3.fromRGB(55,55,75)}):Play() end)
+    return bx,bg
+end
+local function mkSlider(pg,lbl,mn,mx,def,ord,onChange)
+    local c=Instance.new("Frame",pg)
+    c.Size=UDim2.new(1,0,0,42); c.BackgroundTransparency=1; c.LayoutOrder=ord or 3
+    local l=Instance.new("TextLabel",c); l.Size=UDim2.new(1,-44,0,14); l.BackgroundTransparency=1
+    l.Text=lbl; l.TextColor3=Color3.fromRGB(140,140,158); l.Font=Enum.Font.Gotham; l.TextSize=10
+    l.TextXAlignment=Enum.TextXAlignment.Left
+    local vl=Instance.new("TextLabel",c); vl.Size=UDim2.new(0,42,0,14); vl.Position=UDim2.new(1,-42,0,0)
+    vl.BackgroundTransparency=1; vl.Text=tostring(def); vl.TextColor3=Color3.fromRGB(0,200,255)
+    vl.Font=Enum.Font.GothamBold; vl.TextSize=10; vl.TextXAlignment=Enum.TextXAlignment.Right
+    local tb=Instance.new("Frame",c); tb.Size=UDim2.new(1,0,0,7); tb.Position=UDim2.new(0,0,0,20)
+    tb.BackgroundColor3=Color3.fromRGB(24,24,34); tb.BorderSizePixel=0
+    Instance.new("UICorner",tb).CornerRadius=UDim.new(0,4)
+    local tf=Instance.new("Frame",tb); tf.Size=UDim2.new(0,0,1,0)
+    tf.BackgroundColor3=Color3.fromRGB(0,200,255); tf.BorderSizePixel=0
+    Instance.new("UICorner",tf).CornerRadius=UDim.new(0,4)
+    local kn=Instance.new("Frame",tb); kn.Size=UDim2.new(0,14,0,14); kn.AnchorPoint=Vector2.new(0.5,0.5)
+    kn.Position=UDim2.new(0,0,0.5,0); kn.BackgroundColor3=Color3.fromRGB(220,220,230)
+    kn.BorderSizePixel=0; kn.ZIndex=3
+    Instance.new("UICorner",kn).CornerRadius=UDim.new(0,7)
+    local cv=math.clamp(def,mn,mx)
+    local function sr(r)
+        r=math.clamp(r,0,1); cv=math.clamp(math.round(mn+r*(mx-mn)),mn,mx)
+        tf.Size=UDim2.new(r,0,1,0); kn.Position=UDim2.new(r,0,0.5,0)
+        vl.Text=tostring(cv); if onChange then onChange(cv) end
+    end
+    sr((def-mn)/(mx-mn))
+    local drag=false
+    kn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=true end end)
+    UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=false end end)
+    UserInputService.InputChanged:Connect(function(i) if drag then sr((i.Position.X-tb.AbsolutePosition.X)/tb.AbsoluteSize.X) end end)
+    tb.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then sr((i.Position.X-tb.AbsolutePosition.X)/tb.AbsoluteSize.X) end end)
+    return c, function() return cv end
+end
+local function mkToggle(pg,on,off,ord)
+    local b=Instance.new("TextButton",pg)
+    b.Size=UDim2.new(1,0,0,36); b.BackgroundColor3=Color3.fromRGB(0,140,55)
+    b.Text="▶  "..off; b.TextColor3=Color3.fromRGB(255,255,255)
+    b.Font=Enum.Font.GothamBold; b.TextSize=11; b.BorderSizePixel=0; b.LayoutOrder=ord or 10
+    Instance.new("UICorner",b).CornerRadius=UDim.new(0,10)
+    local act=false
+    b.MouseButton1Click:Connect(function()
+        act=not act
+        if act then b.Text="■  "..on; TweenService:Create(b,TweenInfo.new(0.2),{BackgroundColor3=Color3.fromRGB(160,35,35)}):Play()
+        else b.Text="▶  "..off; TweenService:Create(b,TweenInfo.new(0.2),{BackgroundColor3=Color3.fromRGB(0,140,55)}):Play() end
+    end)
+    return b, function() return act end
+end
+local function mkSep(pg,ord)
+    local f=Instance.new("Frame",pg); f.Size=UDim2.new(1,0,0,1)
+    f.BackgroundColor3=Color3.fromRGB(45,45,60); f.BorderSizePixel=0; f.LayoutOrder=ord or 99
+end
+local function mkStatus(pg,ord)
+    local l=Instance.new("TextLabel",pg); l.Size=UDim2.new(1,0,0,18); l.BackgroundTransparency=1
+    l.Text="● Desativado"; l.TextColor3=Color3.fromRGB(180,50,50)
+    l.Font=Enum.Font.Gotham; l.TextSize=10; l.TextXAlignment=Enum.TextXAlignment.Center; l.LayoutOrder=ord or 11
+    return l
+end
+
+-- ============================================================
+--  PESQUISA — lógica
+-- ============================================================
+-- Mapa de funções para pesquisa
+local searchItems = {}  -- preenchido depois de criar as páginas
+
+local searchResultFrame = Instance.new("Frame",win)
+searchResultFrame.Size             = UDim2.new(1,-24,0,0)
+searchResultFrame.Position         = UDim2.new(0,12,0,92)
+searchResultFrame.BackgroundColor3 = Color3.fromRGB(14,14,20)
+searchResultFrame.BorderSizePixel  = 0
+searchResultFrame.Visible          = false
+searchResultFrame.ZIndex           = 50
+Instance.new("UICorner",searchResultFrame).CornerRadius=UDim.new(0,10)
+local srStroke=Instance.new("UIStroke",searchResultFrame); srStroke.Color=Color3.fromRGB(0,150,200); srStroke.Thickness=1
+local srLayout=Instance.new("UIListLayout",searchResultFrame); srLayout.SortOrder=Enum.SortOrder.LayoutOrder; srLayout.Padding=UDim.new(0,1)
+
+local function clearSearchResults()
+    for _,v in ipairs(searchResultFrame:GetChildren()) do
+        if v:IsA("TextButton") then v:Destroy() end
+    end
+end
+
+local function updateSearch(query)
+    clearSearchResults()
+    if query=="" then
+        searchResultFrame.Visible=false
+        sidebar.Visible=true; contentArea.Visible=true
+        return
+    end
+    sidebar.Visible=false; contentArea.Visible=false
+    searchResultFrame.Visible=true
+    local q=string.lower(query)
+    local found=0
+    for _,item in ipairs(searchItems) do
+        if string.lower(item.name):find(q,1,true) then
+            found+=1
+            local btn=Instance.new("TextButton",searchResultFrame)
+            btn.Size=UDim2.new(1,0,0,36); btn.BackgroundColor3=Color3.fromRGB(20,20,30)
+            btn.BorderSizePixel=0; btn.LayoutOrder=found; btn.ZIndex=51
+            btn.Text=""; 
+            local ic=Instance.new("TextLabel",btn); ic.Size=UDim2.new(0,30,1,0)
+            ic.BackgroundTransparency=1; ic.Text=item.icon; ic.TextSize=14; ic.Font=Enum.Font.Gotham; ic.ZIndex=52
+            local nm=Instance.new("TextLabel",btn); nm.Size=UDim2.new(1,-60,1,0); nm.Position=UDim2.new(0,30,0,0)
+            nm.BackgroundTransparency=1; nm.Text=item.name; nm.TextColor3=Color3.fromRGB(210,210,220)
+            nm.Font=Enum.Font.Gotham; nm.TextSize=12; nm.TextXAlignment=Enum.TextXAlignment.Left; nm.ZIndex=52
+            local cat=Instance.new("TextLabel",btn); cat.Size=UDim2.new(0,60,1,0); cat.Position=UDim2.new(1,-62,0,0)
+            cat.BackgroundTransparency=1; cat.Text=item.cat; cat.TextColor3=Color3.fromRGB(0,160,200)
+            cat.Font=Enum.Font.Gotham; cat.TextSize=9; cat.TextXAlignment=Enum.TextXAlignment.Right; cat.ZIndex=52
+            btn.MouseButton1Click:Connect(function()
+                searchBox.Text=""; updateSearch("")
+                -- abre a categoria correta
+                for j,c in ipairs(CATS) do
+                    if c.name==item.cat then
+                        catBtns[j]:SimulateClick and catBtns[j].MouseButton1Click:Fire() or
+                        (function()
+                            currentCat=j
+                            for k,pg in ipairs(catPages) do pg.Visible=(k==j) end
+                            for k,cb in ipairs(catBtns) do
+                                TweenService:Create(cb,TweenInfo.new(0.2),{BackgroundColor3=(k==j and Color3.fromRGB(0,100,160) or Color3.fromRGB(18,18,28))}):Play()
+                            end
+                            sidebar.Visible=true; contentArea.Visible=true
+                        end)()
+                        break
+                    end
+                end
+            end)
+        end
+    end
+    if found==0 then
+        local none=Instance.new("TextLabel",searchResultFrame)
+        none.Size=UDim2.new(1,0,0,34); none.BackgroundTransparency=1
+        none.Text="Nenhuma função encontrada"; none.TextColor3=Color3.fromRGB(90,90,110)
+        none.Font=Enum.Font.Gotham; none.TextSize=11; none.LayoutOrder=1; none.ZIndex=51
+    end
+    searchResultFrame.Size=UDim2.new(1,-24,0,math.min(found,5)*37+2)
+end
+
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    updateSearch(searchBox.Text)
+end)
+
+-- ============================================================
+--  CAT 1 — PLAYER (vazia por enquanto)
+-- ============================================================
+do
+    local pg=catPages[1]
+    secTitle(pg,"PLAYER",1)
+    local ph=Instance.new("TextLabel",pg)
+    ph.Size=UDim2.new(1,0,0,60); ph.BackgroundTransparency=1
+    ph.Text="Em breve...\nMais funções serão adicionadas aqui!"
+    ph.TextColor3=Color3.fromRGB(70,70,90); ph.Font=Enum.Font.Gotham
+    ph.TextSize=12; ph.TextWrapped=true; ph.LayoutOrder=2
+end
+
+-- ============================================================
+--  CAT 2 — CHAT (6 sub-abas via mini-tabs)
+-- ============================================================
+do
+    local pg=catPages[2]
+    local CHAT_TABS={"Script","Loop","Privado","Auto","Agend.","Aleat."}
+    local chatTabBtns={}; local chatTabPages={}; local curChat=1
+
+    -- mini-tabs de chat
+    local miniTabBar=Instance.new("Frame",pg)
+    miniTabBar.Size=UDim2.new(1,0,0,26); miniTabBar.BackgroundColor3=Color3.fromRGB(14,14,22)
+    miniTabBar.BorderSizePixel=0; miniTabBar.LayoutOrder=1
+    Instance.new("UICorner",miniTabBar).CornerRadius=UDim.new(0,8)
+    local mtLayout=Instance.new("UIListLayout",miniTabBar)
+    mtLayout.FillDirection=Enum.FillDirection.Horizontal; mtLayout.SortOrder=Enum.SortOrder.LayoutOrder; mtLayout.Padding=UDim.new(0,1)
+
+    local function makeMiniPage()
+        local f=Instance.new("Frame",pg)
+        f.Size=UDim2.new(1,0,0,0); f.AutomaticSize=Enum.AutomaticSize.Y
+        f.BackgroundTransparency=1; f.BorderSizePixel=0; f.Visible=false
+        local l=Instance.new("UIListLayout",f); l.SortOrder=Enum.SortOrder.LayoutOrder; l.Padding=UDim.new(0,6)
+        return f
+    end
+
+    for i,name in ipairs(CHAT_TABS) do
+        local b=Instance.new("TextButton",miniTabBar)
+        b.Size=UDim2.new(0,math.floor(300/#CHAT_TABS),1,0)
+        b.BackgroundColor3=Color3.fromRGB(14,14,22); b.Text=name
+        b.TextColor3=Color3.fromRGB(100,100,120); b.Font=Enum.Font.Gotham
+        b.TextSize=9; b.BorderSizePixel=0; b.LayoutOrder=i
+        Instance.new("UICorner",b).CornerRadius=UDim.new(0,7)
+        chatTabBtns[i]=b; chatTabPages[i]=makeMiniPage()
+        b.MouseButton1Click:Connect(function()
+            curChat=i
+            for j,cb in ipairs(chatTabBtns) do
+                if j==i then TweenService:Create(cb,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(0,120,170),TextColor3=Color3.fromRGB(255,255,255)}):Play()
+                else TweenService:Create(cb,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(14,14,22),TextColor3=Color3.fromRGB(100,100,120)}):Play() end
+                chatTabPages[j].Visible=(j==i)
+            end
+        end)
+    end
+    -- seleciona primeiro
+    TweenService:Create(chatTabBtns[1],TweenInfo.new(0),{BackgroundColor3=Color3.fromRGB(0,120,170),TextColor3=Color3.fromRGB(255,255,255)}):Play()
+    chatTabPages[1].Visible=true
+
+    -- registra para pesquisa
+    local chatFuncNames={
+        {name="Chat Script",    icon="⚡", cat="Chat"},
+        {name="Loop de Chat",   icon="🔁", cat="Chat"},
+        {name="Mensagem Privada",icon="🔒",cat="Chat"},
+        {name="Auto-Resposta",  icon="🤖", cat="Chat"},
+        {name="Msg Agendada",   icon="⏰", cat="Chat"},
+        {name="Chat Aleatório", icon="🎲", cat="Chat"},
+        {name="Player",         icon="👤", cat="Player"},
+    }
+    for _,item in ipairs(chatFuncNames) do table.insert(searchItems,item) end
+
+    -- ── SUB 1: CHAT SCRIPT ──
+    do
+        local mp=chatTabPages[1]
+        smLbl(mp,"Gatilho",1); local trigBox=mkBox(mp,"Ex: . ou !",".",2)
+        mkSep(mp,3)
+        smLbl(mp,"Fala 1",4); local f1Box=mkBox(mp,"1ª mensagem...","",5)
+        local _,gD1=mkSlider(mp,"Tempo antes da Fala 1 (seg)",0,30,0,6)
+        mkSep(mp,7)
+        smLbl(mp,"Fala 2 (opcional)",8); local f2Box=mkBox(mp,"2ª mensagem — deixar vazio ignora","",9)
+        local _,gD2=mkSlider(mp,"Tempo antes da Fala 2 (seg)",0,30,2,10)
+        mkSep(mp,11)
+        local _,gRep=mkSlider(mp,"Repetições (máx. 100)",1,100,1,12)
+        mkSep(mp,13)
+        local tb,gAct=mkToggle(mp,"DESATIVAR","ATIVAR CHAT SCRIPT",14)
+        local st=mkStatus(mp,15)
+        local conn
+        tb.MouseButton1Click:Connect(function()
+            task.wait(0.05)
+            if gAct() then
+                if trigBox.Text=="" or f1Box.Text=="" then st.Text="⚠ Preencha gatilho e Fala 1!"; st.TextColor3=Color3.fromRGB(255,200,0); return end
+                st.Text="● Ativo | Gatilho: "..trigBox.Text; st.TextColor3=Color3.fromRGB(0,200,100)
+                local function listen()
+                    if conn then conn:Disconnect() end
+                    conn=player.Chatted:Connect(function(msg)
+                        if msg==trigBox.Text and gAct() then
+                            conn:Disconnect()
+                            for i=1,gRep() do
+                                if not gAct() then break end
+                                if gD1()>0 then task.wait(gD1()) end
+                                sendChat(f1Box.Text)
+                                if f2Box.Text~="" then
+                                    if gD2()>0 then task.wait(gD2()) end
+                                    sendChat(f2Box.Text)
+                                end
+                            end
+                            if gAct() then listen() end
+                        end
+                    end)
+                end
+                listen()
+            else
+                if conn then conn:Disconnect(); conn=nil end
+                st.Text="● Desativado"; st.TextColor3=Color3.fromRGB(180,50,50)
+            end
+        end)
+    end
+
+    -- ── SUB 2: LOOP ──
+    do
+        local mp=chatTabPages[2]
+        smLbl(mp,"Mensagem",1); local mBox=mkBox(mp,"Mensagem em loop...","",2)
+        local _,gInt=mkSlider(mp,"Intervalo (seg)",1,120,5,3)
+        mkSep(mp,4); local tb,gAct=mkToggle(mp,"PARAR LOOP","INICIAR LOOP",5); local st=mkStatus(mp,6)
+        tb.MouseButton1Click:Connect(function()
+            task.wait(0.05)
+            if gAct() then
+                if mBox.Text=="" then st.Text="⚠ Digite uma mensagem!"; st.TextColor3=Color3.fromRGB(255,200,0); return end
+                st.Text="● Loop ativo"; st.TextColor3=Color3.fromRGB(0,200,100)
+                task.spawn(function() while gAct() do sendChat(mBox.Text); task.wait(gInt()) end end)
+            else st.Text="● Parado"; st.TextColor3=Color3.fromRGB(180,50,50) end
+        end)
+    end
+
+    -- ── SUB 3: PRIVADO ──
+    do
+        local mp=chatTabPages[3]
+        smLbl(mp,"Nome do jogador",1); local nBox=mkBox(mp,"Nome exato...","",2)
+        smLbl(mp,"Mensagem",3); local mBox=mkBox(mp,"Mensagem...","",4)
+        local _,gRep=mkSlider(mp,"Repetições",1,100,1,5)
+        local _,gInt=mkSlider(mp,"Intervalo (seg)",0,60,1,6)
+        mkSep(mp,7); local tb,gAct=mkToggle(mp,"PARAR","ENVIAR PRIVADO",8); local st=mkStatus(mp,9)
+        tb.MouseButton1Click:Connect(function()
+            task.wait(0.05)
+            if gAct() then
+                if nBox.Text=="" or mBox.Text=="" then st.Text="⚠ Preencha nome e mensagem!"; st.TextColor3=Color3.fromRGB(255,200,0); return end
+                st.Text="● Enviando para "..nBox.Text; st.TextColor3=Color3.fromRGB(0,200,100)
+                task.spawn(function()
+                    local r=gRep()
+                    for i=1,r do
+                        if not gAct() then break end
+                        sendPrivate(nBox.Text,mBox.Text)
+                        if i<r then task.wait(gInt()) end
+                    end
+                    if gAct() then st.Text="✓ Concluído"; st.TextColor3=Color3.fromRGB(0,180,100) end
+                end)
+            else st.Text="● Parado"; st.TextColor3=Color3.fromRGB(180,50,50) end
+        end)
+    end
+
+    -- ── SUB 4: AUTO-RESPOSTA ──
+    do
+        local mp=chatTabPages[4]
+        smLbl(mp,"Palavra que aciona",1); local tBox=mkBox(mp,"Ex: preço, oi...","",2)
+        smLbl(mp,"Sua resposta",3); local rBox=mkBox(mp,"O que responder...","",4)
+        -- modo
+        local mf=Instance.new("Frame",mp); mf.Size=UDim2.new(1,0,0,30); mf.BackgroundTransparency=1; mf.LayoutOrder=5
+        local ml=Instance.new("UIListLayout",mf); ml.FillDirection=Enum.FillDirection.Horizontal; ml.Padding=UDim.new(0,6)
+        local isPub=true
+        local bPub=Instance.new("TextButton",mf); bPub.Size=UDim2.new(0.5,-3,1,0); bPub.BackgroundColor3=Color3.fromRGB(0,120,170)
+        bPub.Text="Público"; bPub.TextColor3=Color3.fromRGB(255,255,255); bPub.Font=Enum.Font.Gotham; bPub.TextSize=10; bPub.BorderSizePixel=0
+        Instance.new("UICorner",bPub).CornerRadius=UDim.new(0,8)
+        local bPriv=Instance.new("TextButton",mf); bPriv.Size=UDim2.new(0.5,-3,1,0); bPriv.BackgroundColor3=Color3.fromRGB(24,24,34)
+        bPriv.Text="Privado"; bPriv.TextColor3=Color3.fromRGB(130,130,150); bPriv.Font=Enum.Font.Gotham; bPriv.TextSize=10; bPriv.BorderSizePixel=0
+        Instance.new("UICorner",bPriv).CornerRadius=UDim.new(0,8)
+        bPub.MouseButton1Click:Connect(function() isPub=true; TweenService:Create(bPub,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(0,120,170),TextColor3=Color3.fromRGB(255,255,255)}):Play(); TweenService:Create(bPriv,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(24,24,34),TextColor3=Color3.fromRGB(130,130,150)}):Play() end)
+        bPriv.MouseButton1Click:Connect(function() isPub=false; TweenService:Create(bPriv,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(0,120,170),TextColor3=Color3.fromRGB(255,255,255)}):Play(); TweenService:Create(bPub,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(24,24,34),TextColor3=Color3.fromRGB(130,130,150)}):Play() end)
+        mkSep(mp,6); local tb,gAct=mkToggle(mp,"DESATIVAR AUTO","ATIVAR AUTO-RESP",7); local st=mkStatus(mp,8)
+        local conns={}
+        tb.MouseButton1Click:Connect(function()
+            task.wait(0.05)
+            if gAct() then
+                if tBox.Text=="" or rBox.Text=="" then st.Text="⚠ Preencha os campos!"; st.TextColor3=Color3.fromRGB(255,200,0); return end
+                st.Text="● Monitorando: \""..tBox.Text.."\""; st.TextColor3=Color3.fromRGB(0,200,100)
+                local function hook(p)
+                    local c=p.Chatted:Connect(function(msg)
+                        if not gAct() then return end
+                        if string.lower(msg):find(string.lower(tBox.Text),1,true) then
+                            if isPub then sendChat(rBox.Text) else sendPrivate(p.Name,rBox.Text) end
+                        end
+                    end)
+                    table.insert(conns,c)
+                end
+                for _,p in ipairs(Players:GetPlayers()) do hook(p) end
+                table.insert(conns,Players.PlayerAdded:Connect(hook))
+            else
+                for _,c in ipairs(conns) do c:Disconnect() end; conns={}
+                st.Text="● Desativado"; st.TextColor3=Color3.fromRGB(180,50,50)
+            end
+        end)
+    end
+
+    -- ── SUB 5: AGENDADO ──
+    do
+        local mp=chatTabPages[5]
+        smLbl(mp,"Mensagem",1); local mBox=mkBox(mp,"Mensagem a enviar...","",2)
+        local _,gT=mkSlider(mp,"Enviar após (seg)",1,600,30,3)
+        mkSep(mp,4); local tb,gAct=mkToggle(mp,"CANCELAR","AGENDAR",5); local st=mkStatus(mp,6)
+        tb.MouseButton1Click:Connect(function()
+            task.wait(0.05)
+            if gAct() then
+                if mBox.Text=="" then st.Text="⚠ Digite uma mensagem!"; st.TextColor3=Color3.fromRGB(255,200,0); return end
+                local t=gT(); st.Text="● Enviando em "..t.."s..."; st.TextColor3=Color3.fromRGB(0,200,100)
+                task.spawn(function()
+                    local r=t
+                    while r>0 and gAct() do task.wait(1); r-=1; if gAct() then st.Text="● Enviando em "..r.."s..." end end
+                    if gAct() then sendChat(mBox.Text); st.Text="✓ Enviado!"; st.TextColor3=Color3.fromRGB(0,200,100) end
+                end)
+            else st.Text="● Cancelado"; st.TextColor3=Color3.fromRGB(180,50,50) end
+        end)
+    end
+
+    -- ── SUB 6: ALEATÓRIO ──
+    do
+        local mp=chatTabPages[6]
+        local fBoxes={}
+        for i=1,5 do
+            smLbl(mp,"Frase "..i..(i==1 and " (obrigatória)" or " (opcional)"),i*2-1)
+            local b=mkBox(mp,"Frase "..i.."...","",i*2); table.insert(fBoxes,b)
+        end
+        mkSep(mp,12); smLbl(mp,"Gatilho",13); local tBox=mkBox(mp,"Ex: ?","?",14)
+        local _,gRep=mkSlider(mp,"Repetições",1,100,1,15)
+        local _,gInt=mkSlider(mp,"Intervalo (seg)",0,60,1,16)
+        mkSep(mp,17); local tb,gAct=mkToggle(mp,"DESATIVAR","ATIVAR ALEATÓRIO",18); local st=mkStatus(mp,19)
+        local last=-1
+        local function sort()
+            local v={}; for _,b in ipairs(fBoxes) do if b.Text~="" then table.insert(v,b.Text) end end
+            if #v==0 then return nil end; if #v==1 then return v[1] end
+            local idx; repeat idx=math.random(1,#v) until idx~=last; last=idx; return v[idx]
+        end
+        local rc
+        tb.MouseButton1Click:Connect(function()
+            task.wait(0.05)
+            if gAct() then
+                if tBox.Text=="" then st.Text="⚠ Digite um gatilho!"; st.TextColor3=Color3.fromRGB(255,200,0); return end
+                st.Text="● Ativo | Gatilho: "..tBox.Text; st.TextColor3=Color3.fromRGB(0,200,100)
+                rc=player.Chatted:Connect(function(msg)
+                    if msg==tBox.Text and gAct() then
+                        local r=gRep()
+                        for i=1,r do
+                            if not gAct() then break end
+                            local f=sort(); if f then sendChat(f) end
+                            if i<r then task.wait(gInt()) end
+                        end
+                    end
+                end)
+            else
+                if rc then rc:Disconnect(); rc=nil end
+                st.Text="● Desativado"; st.TextColor3=Color3.fromRGB(180,50,50)
+            end
+        end)
+    end
+end
+
+-- ============================================================
+--  CAT 3 — INFO
+-- ============================================================
+do
+    local pg=catPages[3]
+    secTitle(pg,"INFORMAÇÕES",1)
+
+    -- logo mini
+    local logoInfo=Instance.new("TextLabel",pg)
+    logoInfo.Size=UDim2.new(1,0,0,30); logoInfo.BackgroundTransparency=1
+    logoInfo.Text="◈  ECLIPSE HUB"; logoInfo.TextColor3=Color3.fromRGB(0,200,255)
+    logoInfo.Font=Enum.Font.GothamBold; logoInfo.TextSize=16; logoInfo.LayoutOrder=2
+
+    local madeInfo=Instance.new("TextLabel",pg)
+    madeInfo.Size=UDim2.new(1,0,0,18); madeInfo.BackgroundTransparency=1
+    madeInfo.Text="Feito por: CARLTX IMORTAL"; madeInfo.TextColor3=Color3.fromRGB(0,170,210)
+    madeInfo.Font=Enum.Font.GothamBold; madeInfo.TextSize=11; madeInfo.LayoutOrder=3
+
+    mkSep(pg,4)
+
+    -- Discord
+    local function mkLinkBtn(parent,icon,label,link,col,ord)
+        local bg=Instance.new("Frame",parent)
+        bg.Size=UDim2.new(1,0,0,38); bg.BackgroundColor3=Color3.fromRGB(18,18,28)
+        bg.BorderSizePixel=0; bg.LayoutOrder=ord
+        Instance.new("UICorner",bg).CornerRadius=UDim.new(0,10)
+        local ic=Instance.new("TextLabel",bg); ic.Size=UDim2.new(0,30,1,0); ic.Position=UDim2.new(0,8,0,0)
+        ic.BackgroundTransparency=1; ic.Text=icon; ic.TextSize=16; ic.Font=Enum.Font.Gotham
+        local lbl=Instance.new("TextLabel",bg); lbl.Size=UDim2.new(1,-80,1,0); lbl.Position=UDim2.new(0,38,0,0)
+        lbl.BackgroundTransparency=1; lbl.Text=label; lbl.TextColor3=col
+        lbl.Font=Enum.Font.Code; lbl.TextSize=10; lbl.TextXAlignment=Enum.TextXAlignment.Left
+        local cpBtn=Instance.new("TextButton",bg); cpBtn.Size=UDim2.new(0,50,0,24)
+        cpBtn.Position=UDim2.new(1,-56,0.5,-12); cpBtn.BackgroundColor3=col
+        cpBtn.Text="Copiar"; cpBtn.TextColor3=Color3.fromRGB(255,255,255)
+        cpBtn.Font=Enum.Font.Gotham; cpBtn.TextSize=9; cpBtn.BorderSizePixel=0
+        Instance.new("UICorner",cpBtn).CornerRadius=UDim.new(0,6)
+        cpBtn.MouseButton1Click:Connect(function()
+            -- coloca no clipboard via TextBox trick
+            local tb=Instance.new("TextBox",SG); tb.Text=link; tb.Size=UDim2.new(0,0,0,0)
+            tb.Position=UDim2.new(2,0,2,0); tb.Visible=true
+            tb:CaptureFocus(); tb:ReleaseFocus()
+            tb:Destroy()
+            cpBtn.Text="✓ Ok!"; cpBtn.BackgroundColor3=Color3.fromRGB(0,180,80)
+            task.wait(1.5); cpBtn.Text="Copiar"; cpBtn.BackgroundColor3=col
+        end)
+    end
+
+    mkLinkBtn(pg,"💬","discord.gg/WVbXnrm7ca","discord.gg/WVbXnrm7ca",Color3.fromRGB(88,101,242),5)
+    mkLinkBtn(pg,"▶","youtube.com/@carltx900.0","https://youtube.com/@carltx900.0",Color3.fromRGB(220,50,50),6)
+
+    mkSep(pg,7)
+
+    local verLbl=Instance.new("TextLabel",pg)
+    verLbl.Size=UDim2.new(1,0,0,18); verLbl.BackgroundTransparency=1
+    verLbl.Text="Version: v1.0"; verLbl.TextColor3=Color3.fromRGB(70,70,90)
+    verLbl.Font=Enum.Font.Gotham; verLbl.TextSize=10; verLbl.LayoutOrder=8
+end
+
+-- seleciona Player por padrão
+do
+    TweenService:Create(catBtns[1],TweenInfo.new(0),{BackgroundColor3=Color3.fromRGB(0,100,160)}):Play()
+    for _,c in ipairs(catBtns[1]:GetChildren()) do
+        if c:IsA("TextLabel") and c.TextSize==9 then c.TextColor3=Color3.fromRGB(255,255,255) end
+    end
+    catPages[1].Visible=true
+end
+
+-- ============================================================
+--  BOTÕES DA JANELA
+-- ============================================================
+local expanded=true
+btnMin.MouseButton1Click:Connect(function()
+    win.Visible=false; bubble.Visible=true
+end)
+
+btnExpand.MouseButton1Click:Connect(function()
+    expanded=not expanded
+    if expanded then
+        TweenService:Create(win,TweenInfo.new(0.25,Enum.EasingStyle.Quad),{Size=UDim2.new(0,WIN_W,0,WIN_H)}):Play()
+        btnExpand.Text="□"
+    else
+        TweenService:Create(win,TweenInfo.new(0.25,Enum.EasingStyle.Quad),{Size=UDim2.new(0,WIN_W,0,52)}):Play()
+        btnExpand.Text="▣"
+    end
+end)
+
+btnClose.MouseButton1Click:Connect(function()
+    win.Visible=false; bubble.Visible=true
+end)
+
+bubble.MouseButton1Click:Connect(function()
+    win.Visible=true; bubble.Visible=false
+end)
+
+-- hover bolinha
+bubble.MouseEnter:Connect(function() TweenService:Create(bubble,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(0,100,150)}):Play() end)
+bubble.MouseLeave:Connect(function() TweenService:Create(bubble,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(14,14,20)}):Play() end)
+
+-- F9
+UserInputService.InputBegan:Connect(function(inp,gp)
+    if gp then return end
+    if inp.KeyCode==Enum.KeyCode.F9 then
+        if win.Visible then win.Visible=false; bubble.Visible=true
+        else win.Visible=true; bubble.Visible=false end
+    end
+end)
+
+-- abre após splash
+task.delay(3.5, function()
+    win.Visible=true; bubble.Visible=false
+end)

@@ -825,7 +825,7 @@ TabPickup:Dropdown({
     Multi  = false,
     Callback = function(value)
         State.GrabMode = value
-        WindUI:Notify({ Title = "Grab Mode", Content = "Changed to: " .. value, Duration = 1, Icon = "settings" })
+        WindUI:Notify({ Title = "Grab Mode", Content = "Changed to: " .. value, Duration = 3, Icon = "settings" })
     end,
 })
 
@@ -1029,8 +1029,8 @@ TabMiniGame:Button({
 -- TAB: MISC
 -- ============================================================
 TabMisc:Button({
-    Title = "Delete Anti-cheat method 1",
-    Desc  = "Destroys workspace.[you].StatusHandler after bypassing",
+    Title = "bypass Anti-cheat method 1",
+    Desc  = "This removes some key events related to the game, it may sometimes not work, I can't guarantee it",
     Callback = function()
         BypassAndDelete(function()
             return GetHandlerByName("StatusHandler")
@@ -1039,8 +1039,8 @@ TabMisc:Button({
 })
 
 TabMisc:Button({
-    Title = "Delete Anti-cheat method 2",
-    Desc  = "Destroys workspace.[you].PerkHandler after bypassing",
+    Title = "bypass Anti-cheat method 2",
+    Desc  = "It only removes some detections (not all)",
     Callback = function()
         BypassAndDelete(function()
             return GetHandlerByName("PerkHandler")
@@ -1049,8 +1049,8 @@ TabMisc:Button({
 })
 
 TabMisc:Button({
-    Title = "Delete Anti-cheat method 3",
-    Desc  = "Destroys workspace.[you].StunHandler after bypassing",
+    Title = "bypass Anti-cheat method 3",
+    Desc  = "bypass in a way that excludes some RemoteEvents of your character",
     Callback = function()
         BypassAndDelete(function()
             return GetHandlerByName("StunHandler")
@@ -1064,6 +1064,6 @@ TabMisc:Button({
 WindUI:Notify({
     Title    = "The Button",
     Content  = "Script loaded! by: abyssnt",
-    Duration = 2,
+    Duration = 1,
     Icon     = "check",
 })

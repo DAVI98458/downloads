@@ -668,9 +668,15 @@ local function StartInfJump()
     end)
 end
 
--- ============================================================
--- MISC: DELETE ANTI-CHEAT
--- ============================================================
+-- Acessa diretamente o path workspace.NomeDoPlayer.Handler
+local function GetHandlerByName(handlerName)
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    -- O character do player local fica em workspace com o mesmo nome do player
+    local charInWorkspace = Workspace:FindFirstChild(LocalPlayer.Name)
+    if not charInWorkspace then return nil end
+    return charInWorkspace:FindFirstChild(handlerName)
+end
 -- Mostra "Bypassing..." por 3 segundos e só então tenta destruir o path
 local function BypassAndDelete(pathGetter, label)
     WindUI:Notify({
@@ -692,7 +698,7 @@ local function BypassAndDelete(pathGetter, label)
             WindUI:Notify({
                 Title    = "Misc",
                 Content  = "Bypassed Successfully",
-                Duration = 2,
+                Duration = 3,
                 Icon     = "check",
             })
         else
@@ -1023,31 +1029,31 @@ TabMiniGame:Button({
 -- TAB: MISC
 -- ============================================================
 TabMisc:Button({
-    Title = "Delete Anti-cheat method 1 [RECOMMENDED]",
-    Desc  = "bypass anti-cheat smoother",
+    Title = "Delete Anti-cheat method 1",
+    Desc  = "Destroys workspace.[you].StatusHandler after bypassing",
     Callback = function()
         BypassAndDelete(function()
-            return Workspace:FindFirstChild("StatusHandler", true)
+            return GetHandlerByName("StatusHandler")
         end, "StatusHandler")
     end,
 })
 
 TabMisc:Button({
     Title = "Delete Anti-cheat method 2",
-    Desc  = "This one creates a somewhat problematic bypass it might end up altering something about your character",
+    Desc  = "Destroys workspace.[you].PerkHandler after bypassing",
     Callback = function()
         BypassAndDelete(function()
-            return Workspace:FindFirstChild("PerkHandler", true)
+            return GetHandlerByName("PerkHandler")
         end, "PerkHandler")
     end,
 })
 
 TabMisc:Button({
     Title = "Delete Anti-cheat method 3",
-    Desc  = "This bypass might end up altering something about your character, for example, your stun might disappear",
+    Desc  = "Destroys workspace.[you].StunHandler after bypassing",
     Callback = function()
         BypassAndDelete(function()
-            return Workspace:FindFirstChild("StunHandler", true)
+            return GetHandlerByName("StunHandler")
         end, "StunHandler")
     end,
 })

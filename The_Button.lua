@@ -692,7 +692,7 @@ local function BypassAndDelete(pathGetter, label)
             WindUI:Notify({
                 Title    = "Misc",
                 Content  = "Bypassed Successfully",
-                Duration = 3,
+                Duration = 2,
                 Icon     = "check",
             })
         else
@@ -1023,8 +1023,8 @@ TabMiniGame:Button({
 -- TAB: MISC
 -- ============================================================
 TabMisc:Button({
-    Title = "Delete Anti-cheat method 1",
-    Desc  = "Destroys StatusHandler found anywhere in Workspace after bypassing",
+    Title = "Delete Anti-cheat method 1 [RECOMMENDED]",
+    Desc  = "bypass anti-cheat smoother",
     Callback = function()
         BypassAndDelete(function()
             return Workspace:FindFirstChild("StatusHandler", true)
@@ -1034,7 +1034,7 @@ TabMisc:Button({
 
 TabMisc:Button({
     Title = "Delete Anti-cheat method 2",
-    Desc  = "Destroys PerkHandler found anywhere in Workspace after bypassing",
+    Desc  = "This one creates a somewhat problematic bypass it might end up altering something about your character",
     Callback = function()
         BypassAndDelete(function()
             return Workspace:FindFirstChild("PerkHandler", true)
@@ -1044,7 +1044,7 @@ TabMisc:Button({
 
 TabMisc:Button({
     Title = "Delete Anti-cheat method 3",
-    Desc  = "Destroys StunHandler found anywhere in Workspace after bypassing",
+    Desc  = "This bypass might end up altering something about your character, for example, your stun might disappear",
     Callback = function()
         BypassAndDelete(function()
             return Workspace:FindFirstChild("StunHandler", true)

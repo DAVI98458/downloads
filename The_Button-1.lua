@@ -904,11 +904,11 @@ TabCombat:Button({
     end,
 })
 
-TabCombat:Section({ Title = "Bot" })
+TabCombat:Section({ Title = "Bots" })
 
 TabCombat:Toggle({
     Title = "Aimbot Zombies",
-    Desc  = "Aims at the closest zombie inside workspace.Zombies",
+    Desc  = "Aims at the closest zombie",
     Value = false,
     Callback = function(enabled)
         State.AimbotZombiesEnabled = enabled
@@ -918,7 +918,7 @@ TabCombat:Toggle({
 
 TabCombat:Toggle({
     Title = "Aimbot Bots",
-    Desc  = "Aims at the belly of any NPC/Bot visible on screen",
+    Desc  = "Aims at the belly of any NPC/Bot visible on screen, Maybe this one also targets zombies",
     Value = false,
     Callback = function(enabled)
         State.AimbotBotsEnabled = enabled

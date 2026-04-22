@@ -628,8 +628,8 @@ local function TryAutoGrab(obj)
     autoGrabInProgress[obj] = true
 
     task.spawn(function()
-        -- Espera 1 segundo para o ProximityPrompt carregar antes de tentar pegar
-        task.wait(1)
+        -- Espera o possivel segundo para o ProximityPrompt carregar antes de tentar pegar
+        task.wait(0.7)
         if obj and obj.Parent and IsItemFreeInWorld(obj) and ItemHasGround(obj) then
             GrabItem(itemName)
         end

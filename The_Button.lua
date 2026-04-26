@@ -1,0 +1,1268 @@
+-- WindUI Script: "the button" by abyssnt (COMPLETO)
+
+local Players             = game:GetService("Players")
+local RunService          = game:GetService("RunService")
+local Workspace           = game:GetService("Workspace")
+local UserInputService    = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local TweenService        = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera      = Workspace.CurrentCamera
+
+-- ============================================================
+-- WINDUI LOADER
+-- ============================================================
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+-- ============================================================
+-- WINDOW
+-- ============================================================
+local Window = WindUI:CreateWindow({
+    Title       = "The Button",
+    Author      = "by: abyssnt",
+    Size        = UDim2.fromOffset(580, 460),
+    Theme       = "Dark",
+    Transparent = true,
+})
+
+-- ============================================================
+-- STATE
+-- ============================================================
+local State = {
+    AimbotEnabled       = false,
+    SelectedTarget      = nil,
+    SelectedPlayerName  = "nobody",
+    EspHighlightEnabled = false,
+    EspNicknameEnabled  = false,
+    SpawnNotifyEnabled  = false,
+    Highlights          = {},
+    NicknameLabels      = {},
+    AimbotSmoothness    = 0,
+    TpWalkEnabled       = false,
+    NoclipEnabled       = false,
+    AntiVoidEnabled     = false,
+    GrabMode            = "Grab mode adaptive mobile",
+    InfJumpEnabled      = false,
+    AutoGrab = {
+        Shield    = false,
+        Katana    = false,
+        L106      = false,
+        Knife     = false,
+        Briefcase = false,
+        Sledge    = false,
+        Vest      = false,
+        Bandage   = false,
+        ["AS-VAL"]   = false,
+        Tactical     = false,
+    },
+    AutoGrabAll          = false,
+    AimbotZombiesEnabled = false,
+    AimbotBotsEnabled    = false,
+    EspBotsEnabled       = false,
+}
+
+-- ============================================================
+-- UTILITIES
+-- ============================================================
+local function GetRoot(player)
+    local char = player and player.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function IsAlive(player)
+    local char = player and player.Character
+    local hum  = char and char:FindFirstChildOfClass("Humanoid")
+    return hum and hum.Health > 0
+end
+
+local RayParamsCache = nil
+local function GetRayParams(targetChar)
+    if not RayParamsCache then
+        RayParamsCache = RaycastParams.new()
+        RayParamsCache.FilterType = Enum.RaycastFilterType.Blacklist
+        RayParamsCache.IgnoreWater = true
+    end
+    RayParamsCache.FilterDescendantsInstances = {LocalPlayer.Character, targetChar}
+    return RayParamsCache
+end
+
+local function HasLineOfSight(targetRoot)
+    if not targetRoot then return false end
+    local origin    = Camera.CFrame.Position
+    local direction = targetRoot.Position - origin
+    local distance  = direction.Magnitude
+    if distance > 300 then return false end
+    local params = GetRayParams(targetRoot.Parent)
+    local result = Workspace:Raycast(origin, direction.Unit * distance, params)
+    return result == nil
+end
+
+local function GetPlayerFromEntry(entry)
+    if entry == "nobody" then return nil end
+    local name = entry:match("@(.+)%)$")
+    return name and Players:FindFirstChild(name) or nil
+end
+
+-- Verifica se o item é filho DIRETO do Workspace (não dentro de nenhuma pasta ou character)
+local function IsItemFreeInWorld(obj)
+    if not obj or not obj.Parent then return false end
+    -- Deve ser filho direto do Workspace
+    if obj.Parent ~= Workspace then return false end
+    -- Não pode ser o character de nenhum player
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character == obj then return false end
+    end
+    return true
+end
+
+-- Verifica se há chão abaixo de uma posição
+local function HasGroundAt(position, filterList)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = filterList or {}
+    local result = Workspace:Raycast(position, Vector3.new(0, -200, 0), params)
+    return result ~= nil
+end
+
+-- Verifica se há chão abaixo de um item
+local function ItemHasGround(obj)
+    local part = nil
+    if obj:IsA("BasePart") then
+        part = obj
+    else
+        part = obj:FindFirstChildWhichIsA("BasePart", true)
+    end
+    if not part then return false end
+    return HasGroundAt(part.Position, { obj, LocalPlayer.Character or {} })
+end
+
+-- Tenta achar o ProximityPrompt dentro de um objeto com retry por até maxTime segundos
+-- Procura no objeto, em todos os seus descendentes, e também no pai (Model container)
+local function WaitForProximityPrompt(obj, maxTime)
+    maxTime = maxTime or 2
+    local t = 0
+    while t < maxTime do
+        if not obj or not obj.Parent then return nil end
+        -- Tenta no próprio obj e seus descendentes
+        local pp = obj:FindFirstChildOfClass("ProximityPrompt")
+                or obj:FindFirstChild("ProximityPrompt", true)
+        if pp then return pp end
+        -- Tenta no pai (caso obj seja uma BasePart dentro de um Model)
+        if obj.Parent and obj.Parent ~= Workspace then
+            pp = obj.Parent:FindFirstChildOfClass("ProximityPrompt")
+             or obj.Parent:FindFirstChild("ProximityPrompt", true)
+            if pp then return pp end
+        end
+        task.wait(0.1)
+        t = t + 0.1
+    end
+    return nil
+end
+
+-- ============================================================
+-- AIMBOT LOOP
+-- ============================================================
+local AimbotConn
+local ClickConn
+local Mouse = LocalPlayer:GetMouse()
+
+local lastCameraCF       = CFrame.new()
+local cameraStuckTime    = 0
+local lastRaycastTime    = 0
+local lastLOS            = true
+local targetLostCount    = 0
+local RAYCAST_INTERVAL   = 0.02
+local lastForcedRotation = 0
+
+local function StopAimbot()
+    if AimbotConn then AimbotConn:Disconnect() AimbotConn = nil end
+    if ClickConn  then ClickConn:Disconnect()  ClickConn  = nil end
+    State.SelectedTarget = nil
+    targetLostCount      = 0
+    cameraStuckTime      = 0
+    lastForcedRotation   = 0
+end
+
+local function StartAimbot()
+    StopAimbot()
+
+    local lastClickTime  = 0
+    local CLICK_COOLDOWN = 25
+
+    ClickConn = Mouse.Button1Down:Connect(function()
+        if not State.AimbotEnabled then return end
+        if State.SelectedPlayerName ~= "nobody" then return end
+        local now = tick()
+        if State.SelectedTarget ~= nil and (now - lastClickTime) < CLICK_COOLDOWN then return end
+        local hit = Mouse.Target
+        if not hit then return end
+        local model = hit:FindFirstAncestorOfClass("Model")
+        if not model then return end
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Character == model and p ~= LocalPlayer then
+                State.SelectedTarget = p
+                lastClickTime        = now
+                targetLostCount      = 0
+                cameraStuckTime      = 0
+                lastForcedRotation   = now
+                break
+            end
+        end
+    end)
+
+    AimbotConn = RunService.Heartbeat:Connect(function()
+        if not State.AimbotEnabled then return end
+
+        local target = State.SelectedTarget
+        if not target or not IsAlive(target) then
+            if State.SelectedTarget ~= nil then
+                State.SelectedTarget = nil
+                targetLostCount      = 0
+                WindUI:Notify({
+                    Title    = "Aimbot",
+                    Content  = "Target is dead. Aimbot paused.",
+                    Duration = 2,
+                    Icon     = "x",
+                })
+            end
+            return
+        end
+
+        local root = GetRoot(target)
+        if not root then
+            State.SelectedTarget = nil
+            targetLostCount      = 0
+            return
+        end
+
+        targetLostCount = 0
+
+        local currentCF     = Camera.CFrame
+        local isCameraStuck = (currentCF.Position - lastCameraCF.Position).Magnitude < 0.01
+                           and (currentCF.LookVector - lastCameraCF.LookVector).Magnitude < 0.01
+
+        if isCameraStuck then
+            cameraStuckTime = cameraStuckTime + 0.03
+        else
+            cameraStuckTime = 0
+        end
+        lastCameraCF = currentCF
+
+        local now = tick()
+        if now - lastRaycastTime >= RAYCAST_INTERVAL then
+            lastRaycastTime = now
+            lastLOS = HasLineOfSight(root)
+        end
+
+        if lastLOS then
+            local cf        = Camera.CFrame
+            local targetPos = root.Position
+            local newCF     = CFrame.lookAt(cf.Position, targetPos)
+
+            if cameraStuckTime > 0.5 or (now - lastForcedRotation) > 0.5 then
+                Camera.CFrame      = newCF * CFrame.Angles(0, math.rad(0.01), 0)
+                lastForcedRotation = now
+                cameraStuckTime    = 0
+                task.wait(0.01)
+            end
+
+            local cf         = Camera.CFrame
+            local newCF      = CFrame.lookAt(cf.Position, targetPos)
+            local lerpFactor = 1 - State.AimbotSmoothness
+            if lerpFactor < 0.1 then lerpFactor = 0.1 end
+            Camera.CFrame = cf:Lerp(newCF, lerpFactor)
+        end
+    end)
+end
+
+-- ============================================================
+-- ESP: HIGHLIGHT
+-- ============================================================
+local function ClearHighlights()
+    for _, h in pairs(State.Highlights) do
+        if h and h.Parent then h:Destroy() end
+    end
+    State.Highlights = {}
+end
+
+local function ApplyHighlight(player)
+    if player == LocalPlayer then return end
+    local char = player.Character
+    if not char then return end
+    if State.Highlights[player.Name] and State.Highlights[player.Name].Parent then return end
+    local hl = Instance.new("Highlight")
+    hl.Name                = "ESP_HL_" .. player.Name
+    hl.Adornee             = char
+    hl.OutlineColor        = Color3.fromRGB(0, 255, 0)
+    hl.OutlineTransparency = 0.3
+    hl.FillColor           = Color3.fromRGB(0, 255, 0)
+    hl.FillTransparency    = 1
+    hl.Parent              = char
+    State.Highlights[player.Name] = hl
+end
+
+local function EnableHighlightESP()
+    for _, p in ipairs(Players:GetPlayers()) do ApplyHighlight(p) end
+end
+
+-- ============================================================
+-- ESP: NICKNAME
+-- ============================================================
+local function ClearNicknames()
+    for _, b in pairs(State.NicknameLabels) do
+        if b and b.Parent then b:Destroy() end
+    end
+    State.NicknameLabels = {}
+end
+
+local function ApplyNickname(player)
+    if player == LocalPlayer then return end
+    local char = player.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    if State.NicknameLabels[player.Name] and State.NicknameLabels[player.Name].Parent then return end
+    local bb = Instance.new("BillboardGui")
+    bb.Name        = "ESP_Nick_" .. player.Name
+    bb.Adornee     = root
+    bb.Size        = UDim2.new(0, 120, 0, 30)
+    bb.StudsOffset = Vector3.new(0, 3.5, 0)
+    bb.AlwaysOnTop = true
+    bb.Parent      = root
+    local lbl = Instance.new("TextLabel")
+    lbl.BackgroundTransparency = 1
+    lbl.Size       = UDim2.new(1, 0, 1, 0)
+    lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    lbl.TextSize   = 11
+    lbl.Font       = Enum.Font.GothamBold
+    lbl.Text       = "@" .. player.Name
+    lbl.Parent     = bb
+    State.NicknameLabels[player.Name] = bb
+end
+
+local function EnableNicknameESP()
+    for _, p in ipairs(Players:GetPlayers()) do ApplyNickname(p) end
+end
+
+-- ============================================================
+-- PLAYER HOOKS
+-- ============================================================
+local function HookPlayer(p)
+    p.CharacterAdded:Connect(function()
+        task.wait(1)
+        if State.EspHighlightEnabled then ApplyHighlight(p) end
+        if State.EspNicknameEnabled  then ApplyNickname(p)  end
+    end)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do HookPlayer(p) end
+Players.PlayerAdded:Connect(HookPlayer)
+
+Players.PlayerRemoving:Connect(function(p)
+    if State.SelectedTarget == p then State.SelectedTarget = nil end
+    if State.Highlights[p.Name] then
+        State.Highlights[p.Name]:Destroy()
+        State.Highlights[p.Name] = nil
+    end
+    if State.NicknameLabels[p.Name] then
+        State.NicknameLabels[p.Name]:Destroy()
+        State.NicknameLabels[p.Name] = nil
+    end
+end)
+
+-- ============================================================
+-- ITEM SPAWN WATCHER (notificação)
+-- ============================================================
+local WATCH_ITEMS = { "Shield", "Katana", "L106", "Knife", "Briefcase", "Sledge", "Vest", "Bandage", "AS-VAL", "Tactical" }
+local SpawnConns  = {}
+
+local function StopSpawnWatcher()
+    for _, c in ipairs(SpawnConns) do c:Disconnect() end
+    SpawnConns = {}
+end
+
+local function StartSpawnWatcher()
+    StopSpawnWatcher()
+    local present = {}
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if IsItemFreeInWorld(obj) then
+            for _, w in ipairs(WATCH_ITEMS) do
+                if obj.Name == w then present[obj] = true break end
+            end
+        end
+    end
+
+    local c1 = Workspace.DescendantAdded:Connect(function(obj)
+        if not State.SpawnNotifyEnabled then return end
+        if not IsItemFreeInWorld(obj) then return end
+        for _, w in ipairs(WATCH_ITEMS) do
+            if obj.Name == w and not present[obj] then
+                present[obj] = true
+                WindUI:Notify({
+                    Title    = "Item Spawned",
+                    Content  = "The item " .. w .. " spawned in Workspace",
+                    Duration = 2,
+                    Icon     = "package",
+                })
+                break
+            end
+        end
+    end)
+
+    local c2 = Workspace.DescendantRemoving:Connect(function(obj)
+        present[obj] = nil
+    end)
+
+    table.insert(SpawnConns, c1)
+    table.insert(SpawnConns, c2)
+end
+
+-- ============================================================
+-- GRAB ITEM
+-- ============================================================
+local function GrabItem(itemName)
+    local char = LocalPlayer.Character
+    if not char then
+        WindUI:Notify({ Title = "Error", Content = "Character not found!", Duration = 2, Icon = "x" })
+        return
+    end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then
+        WindUI:Notify({ Title = "Error", Content = "HumanoidRootPart not found!", Duration = 2, Icon = "x" })
+        return
+    end
+
+    local originalCFrame = root.CFrame
+    local prompt   = nil
+    local itemPart = nil
+    local itemObj  = nil
+
+    -- Acha o objeto do item no workspace
+    for _, obj in ipairs(Workspace:GetChildren()) do
+        if obj.Name == itemName and IsItemFreeInWorld(obj) then
+            -- Determina a BasePart do item
+            local part = nil
+            if obj:IsA("BasePart") then
+                part = obj
+            else
+                part = obj:FindFirstChildWhichIsA("BasePart")
+                if not part then
+                    for _, child in ipairs(obj:GetDescendants()) do
+                        if child:IsA("BasePart") then part = child break end
+                    end
+                end
+            end
+            if part then
+                itemPart = part
+                itemObj  = obj
+                break
+            end
+        end
+    end
+
+    if not itemObj or not itemPart then
+        WindUI:Notify({ Title = "Not Found", Content = itemName .. " not available", Duration = 2, Icon = "x" })
+        return
+    end
+
+    -- Teleporta até o item
+    root.CFrame = CFrame.new(itemPart.CFrame.Position + Vector3.new(0, 3, 0))
+    task.wait(0.2)
+
+    -- Aguarda o ProximityPrompt carregar (retry por até 2 segundos)
+    prompt = WaitForProximityPrompt(itemObj, 2)
+
+    if not prompt then
+        root.CFrame = originalCFrame
+        WindUI:Notify({ Title = "Not Found", Content = itemName .. " prompt not available", Duration = 2, Icon = "x" })
+        return
+    end
+
+    -- Ajusta distância se necessário
+    local distance = (root.Position - itemPart.Position).Magnitude
+    if distance > prompt.MaxActivationDistance then
+        local direction = (itemPart.Position - root.Position).Unit
+        local closerPos = itemPart.Position - (direction * (prompt.MaxActivationDistance - 1))
+        root.CFrame = CFrame.new(closerPos + Vector3.new(0, 2, 0))
+        task.wait(0.1)
+    end
+
+    if State.GrabMode == "Grab mode adaptive mobile" then
+        pcall(function() fireproximityprompt(prompt) end)
+    else
+        if prompt and prompt:IsDescendantOf(Workspace) then
+            local currentDist = (root.Position - itemPart.Position).Magnitude
+            if currentDist <= prompt.MaxActivationDistance then
+                VirtualInputManager:SendKeyEvent(true,  Enum.KeyCode.E, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+            end
+        end
+    end
+
+    task.wait(0.2)
+    root.CFrame = originalCFrame
+
+    WindUI:Notify({ Title = "Grabbed " .. itemName, Content = "Successfully picked up " .. itemName, Duration = 2, Icon = "check" })
+end
+
+-- ============================================================
+-- LOCAL PLAYER FEATURES
+-- ============================================================
+local TpWalkConn   = nil
+local NoclipConn   = nil
+local AntiVoidConn = nil
+
+-- TPWALK
+local function StopTpWalk()
+    if TpWalkConn then TpWalkConn:Disconnect() TpWalkConn = nil end
+end
+
+local function StartTpWalk()
+    StopTpWalk()
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+
+    TpWalkConn = RunService.Heartbeat:Connect(function()
+        if not State.TpWalkEnabled then return end
+        if not hum or not hum.Parent then return end
+        local root = hum.Parent:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        local moveDir = hum.MoveDirection
+        if moveDir.Magnitude > 0 then
+            root.CFrame = root.CFrame + (moveDir * 0.3)
+        end
+    end)
+end
+
+-- NOCLIP
+local function StopNoclip()
+    if NoclipConn then NoclipConn:Disconnect() NoclipConn = nil end
+    local char = LocalPlayer.Character
+    if char then
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+        end
+    end
+end
+
+local function StartNoclip()
+    StopNoclip()
+    NoclipConn = RunService.Stepped:Connect(function()
+        if not State.NoclipEnabled then return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end)
+end
+
+-- ANTI-VOID
+local lastSafeCFrame = nil
+
+local function StopAntiVoid()
+    if AntiVoidConn then AntiVoidConn:Disconnect() AntiVoidConn = nil end
+end
+
+local function StartAntiVoid()
+    StopAntiVoid()
+    lastSafeCFrame = nil
+
+    AntiVoidConn = RunService.Heartbeat:Connect(function()
+        if not State.AntiVoidEnabled then return end
+
+        local root = GetRoot(LocalPlayer)
+        if not root then return end
+
+        local pos = root.Position
+
+        if pos.Y > -50 then
+            local safeParams = RaycastParams.new()
+            safeParams.FilterType = Enum.RaycastFilterType.Blacklist
+            safeParams.FilterDescendantsInstances = { LocalPlayer.Character }
+            local groundHit = Workspace:Raycast(pos, Vector3.new(0, -200, 0), safeParams)
+            if groundHit then
+                lastSafeCFrame = root.CFrame
+            end
+        end
+
+        if pos.Y < -100 then
+            local targetCF = lastSafeCFrame or (root.CFrame + Vector3.new(0, 60, 0))
+
+            -- Teleporte suave via Tween no HumanoidRootPart
+            local tween = TweenService:Create(
+                root,
+                TweenInfo.new(3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                { CFrame = targetCF }
+            )
+            tween:Play()
+
+            WindUI:Notify({
+                Title    = "Anti-Void",
+                Content  = lastSafeCFrame and "Void detected! Returning to safe position." or "Void detected! No safe position saved yet.",
+                Duration = 2,
+                Icon     = "shield",
+            })
+        end
+    end)
+end
+
+-- ============================================================
+-- AUTO GRAB WATCHER
+-- ============================================================
+local AutoGrabConn       = nil
+local autoGrabInProgress = {}
+
+local function TryAutoGrab(obj)
+    local itemName = obj.Name
+
+    local isWatched = false
+    for _, w in ipairs(WATCH_ITEMS) do
+        if w == itemName then isWatched = true break end
+    end
+    if not isWatched then return end
+
+    local shouldGrab = State.AutoGrabAll or State.AutoGrab[itemName]
+    if not shouldGrab then return end
+
+    if not IsItemFreeInWorld(obj) then return end
+    if not ItemHasGround(obj) then return end
+
+    if autoGrabInProgress[obj] then return end
+    autoGrabInProgress[obj] = true
+
+    task.spawn(function()
+        -- Espera 1 segundo para o ProximityPrompt carregar antes de tentar pegar
+        task.wait(1)
+        if obj and obj.Parent and IsItemFreeInWorld(obj) and ItemHasGround(obj) then
+            GrabItem(itemName)
+        end
+        autoGrabInProgress[obj] = nil
+    end)
+end
+
+local function StopAutoGrabWatcher()
+    if AutoGrabConn then AutoGrabConn:Disconnect() AutoGrabConn = nil end
+    autoGrabInProgress = {}
+end
+
+local function StartAutoGrabWatcher()
+    StopAutoGrabWatcher()
+    AutoGrabConn = Workspace.ChildAdded:Connect(function(obj)
+        TryAutoGrab(obj)
+    end)
+end
+
+local function GrabExistingItems(filterName)
+    for _, obj in ipairs(Workspace:GetChildren()) do
+        local match = (filterName == nil) or (obj.Name == filterName)
+        if match then TryAutoGrab(obj) end
+    end
+end
+
+local function RefreshAutoGrabWatcher()
+    local anyActive = State.AutoGrabAll
+    if not anyActive then
+        for _, v in pairs(State.AutoGrab) do
+            if v then anyActive = true break end
+        end
+    end
+    if anyActive then
+        if not AutoGrabConn then StartAutoGrabWatcher() end
+    else
+        StopAutoGrabWatcher()
+    end
+end
+
+-- ============================================================
+-- INF JUMP
+-- ============================================================
+local InfJumpConn = nil
+
+local function StopInfJump()
+    if InfJumpConn then InfJumpConn:Disconnect() InfJumpConn = nil end
+end
+
+local function StartInfJump()
+    StopInfJump()
+    InfJumpConn = UserInputService.JumpRequest:Connect(function()
+        if not State.InfJumpEnabled then return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    end)
+end
+
+-- ============================================================
+-- ESP BOTS
+-- ============================================================
+local BotLabels      = {}
+local EspBotsConn    = nil
+local EspBotsRunConn = nil
+
+local function IsBot(obj)
+    if not obj:IsA("Model") then return false end
+    local hum  = obj:FindFirstChildOfClass("Humanoid")
+    local root = obj:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return false end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character == obj then return false end
+    end
+    return true
+end
+
+local function ClearBotLabels()
+    for _, bb in pairs(BotLabels) do
+        if bb and bb.Parent then bb:Destroy() end
+    end
+    BotLabels = {}
+    if EspBotsConn    then EspBotsConn:Disconnect()    EspBotsConn    = nil end
+    if EspBotsRunConn then EspBotsRunConn:Disconnect() EspBotsRunConn = nil end
+end
+
+local function ApplyBotLabel(obj)
+    if BotLabels[obj] and BotLabels[obj].Parent then return end
+    local root = obj:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local bb = Instance.new("BillboardGui")
+    bb.Name        = "ESP_Bot_" .. obj.Name
+    bb.Adornee     = root
+    bb.Size        = UDim2.new(0, 60, 0, 20)
+    bb.StudsOffset = Vector3.new(0, 3, 0)
+    bb.AlwaysOnTop = true
+    bb.Parent      = root
+    local lbl = Instance.new("TextLabel")
+    lbl.BackgroundTransparency = 1
+    lbl.Size       = UDim2.new(1, 0, 1, 0)
+    lbl.TextColor3 = Color3.fromRGB(255, 80, 80)
+    lbl.TextSize   = 11
+    lbl.Font       = Enum.Font.GothamBold
+    lbl.Text       = "Bot"
+    lbl.Parent     = bb
+    BotLabels[obj] = bb
+end
+
+local function EnableEspBots()
+    ClearBotLabels()
+    -- Aplica nos bots já existentes
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if IsBot(obj) then ApplyBotLabel(obj) end
+    end
+    -- Escuta novos bots
+    EspBotsConn = Workspace.DescendantAdded:Connect(function(obj)
+        if not State.EspBotsEnabled then return end
+        task.wait(0.1)
+        if IsBot(obj) then ApplyBotLabel(obj) end
+    end)
+    -- Remove label quando o bot morrer/sair
+    EspBotsRunConn = Workspace.DescendantRemoving:Connect(function(obj)
+        if BotLabels[obj] then
+            if BotLabels[obj].Parent then BotLabels[obj]:Destroy() end
+            BotLabels[obj] = nil
+        end
+    end)
+end
+
+-- ============================================================
+-- AIMBOT ZOMBIES
+-- ============================================================
+local AimbotZombiesConn = nil
+
+local function StopAimbotZombies()
+    if AimbotZombiesConn then AimbotZombiesConn:Disconnect() AimbotZombiesConn = nil end
+end
+
+local function StartAimbotZombies()
+    StopAimbotZombies()
+
+    AimbotZombiesConn = RunService.Heartbeat:Connect(function()
+        if not State.AimbotZombiesEnabled then return end
+
+        local zombiesFolder = Workspace:FindFirstChild("Zombies")
+        if not zombiesFolder then return end
+
+        local closestRoot = nil
+        local closestDist = math.huge
+
+        for _, zombie in ipairs(zombiesFolder:GetChildren()) do
+            local root  = zombie:FindFirstChild("HumanoidRootPart")
+            local torso = zombie:FindFirstChild("UpperTorso") or zombie:FindFirstChild("Torso") or root
+            local hum   = zombie:FindFirstChildOfClass("Humanoid")
+            if root and torso and hum and hum.Health > 0 then
+                -- Wall check
+                local origin    = Camera.CFrame.Position
+                local direction = torso.Position - origin
+                local wcParams  = RaycastParams.new()
+                wcParams.FilterType = Enum.RaycastFilterType.Blacklist
+                wcParams.FilterDescendantsInstances = { LocalPlayer.Character, zombie }
+                local hit    = Workspace:Raycast(origin, direction, wcParams)
+                local hasLOS = (hit == nil)
+
+                if hasLOS then
+                    local dist = direction.Magnitude
+                    if dist < closestDist then
+                        closestDist = dist
+                        closestRoot = torso
+                    end
+                end
+            end
+        end
+
+        if not closestRoot then return end
+
+        local cf    = Camera.CFrame
+        local newCF = CFrame.lookAt(cf.Position, closestRoot.Position)
+        local lerpF = 1 - State.AimbotSmoothness
+        if lerpF < 0.1 then lerpF = 0.1 end
+        Camera.CFrame = cf:Lerp(newCF, lerpF)
+    end)
+end
+
+-- ============================================================
+-- AIMBOT BOTS
+-- ============================================================
+local AimbotBotsConn = nil
+
+local function StopAimbotBots()
+    if AimbotBotsConn then AimbotBotsConn:Disconnect() AimbotBotsConn = nil end
+end
+
+local function StartAimbotBots()
+    StopAimbotBots()
+
+    AimbotBotsConn = RunService.Heartbeat:Connect(function()
+        if not State.AimbotBotsEnabled then return end
+
+        local closestRoot = nil
+        local closestDist = math.huge
+
+        -- Percorre todos os Models no Workspace procurando NPCs/Bots
+        -- (Model com Humanoid mas que não é um player)
+        local playerChars = {}
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Character then playerChars[p.Character] = true end
+        end
+
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("Model") and not playerChars[obj] then
+                local hum  = obj:FindFirstChildOfClass("Humanoid")
+                local root = obj:FindFirstChild("HumanoidRootPart")
+                -- Ignora a pasta Zombies (tem aimbot próprio) e o próprio character local
+                local inZombies = obj.Parent == Workspace:FindFirstChild("Zombies")
+                if hum and root and hum.Health > 0 and not inZombies then
+                    local torso = obj:FindFirstChild("UpperTorso") or obj:FindFirstChild("Torso") or root
+                    -- Wall check
+                    local origin    = Camera.CFrame.Position
+                    local direction = torso.Position - origin
+                    local wcParams  = RaycastParams.new()
+                    wcParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    wcParams.FilterDescendantsInstances = { LocalPlayer.Character, obj }
+                    local hit    = Workspace:Raycast(origin, direction, wcParams)
+                    local hasLOS = (hit == nil)
+
+                    local _, onScreen = Camera:WorldToScreenPoint(torso.Position)
+                    if hasLOS and onScreen then
+                        local dist = direction.Magnitude
+                        if dist < closestDist then
+                            closestDist = dist
+                            closestRoot = torso
+                        end
+                    end
+                end
+            end
+        end
+
+        if not closestRoot then return end
+
+        -- Mira na barriga (HumanoidRootPart já é na altura do tronco)
+        local cf    = Camera.CFrame
+        local newCF = CFrame.lookAt(cf.Position, closestRoot.Position)
+        local lerpF = 1 - State.AimbotSmoothness
+        if lerpF < 0.1 then lerpF = 0.1 end
+        Camera.CFrame = cf:Lerp(newCF, lerpF)
+    end)
+end
+
+-- ============================================================
+-- TABS
+-- ============================================================
+local TabCombat   = Window:Tab({ Title = "Combat",        Icon = "swords"    })
+local TabESP      = Window:Tab({ Title = "ESP",           Icon = "eye"       })
+local TabPickup   = Window:Tab({ Title = "Pick Up Items", Icon = "package"   })
+local TabLocal    = Window:Tab({ Title = "Local Player",  Icon = "user"      })
+local TabMiniGame = Window:Tab({ Title = "Mini Game",     Icon = "gamepad-2" })
+
+-- ============================================================
+-- TAB: COMBAT
+-- ============================================================
+TabCombat:Toggle({
+    Title = "Aimbot Players",
+    Desc  = "It looks directly at the person you click on if you don't select a target. After 25 seconds with the Aimbot turned on, you can click on another person; otherwise, turn it off and on again",
+    Value = false,
+    Callback = function(enabled)
+        State.AimbotEnabled = enabled
+        if enabled then
+            State.SelectedTarget = GetPlayerFromEntry(State.SelectedPlayerName)
+            StartAimbot()
+        else
+            StopAimbot()
+            State.SelectedTarget = nil
+        end
+    end,
+})
+
+local playerEntries = { "nobody" }
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then
+        table.insert(playerEntries, p.DisplayName .. "(@" .. p.Name .. ")")
+    end
+end
+
+TabCombat:Dropdown({
+    Title  = "Select Target",
+    Desc   = "Choose the player for Aimbot to lock onto",
+    Values = playerEntries,
+    Value  = "nobody",
+    Multi  = false,
+    Callback = function(value)
+        State.SelectedPlayerName = value
+        State.SelectedTarget     = GetPlayerFromEntry(value)
+    end,
+})
+
+TabCombat:Button({
+    Title = "Disable Fall Injury",
+    Desc  = "Toggles the FallDamage script in your character",
+    Callback = function()
+        local ok, result = pcall(function()
+            return Workspace[LocalPlayer.Name].FallDamage
+        end)
+        if not ok or not result then
+            WindUI:Notify({ Title = "Fall Injury", Content = "FallDamage script not found in your character.", Duration = 3, Icon = "x" })
+            return
+        end
+        if result.Enabled then
+            result.Enabled = false
+            WindUI:Notify({ Title = "Fall Injury", Content = "Fall injury disabled!", Duration = 2, Icon = "check" })
+        else
+            result.Enabled = true
+            WindUI:Notify({ Title = "Fall Injury", Content = "Fall injury re-enabled.", Duration = 2, Icon = "check" })
+        end
+    end,
+})
+
+TabCombat:Section({ Title = "Bot" })
+
+TabCombat:Toggle({
+    Title = "Aimbot Zombies",
+    Desc  = "Aims at the closest zombie inside workspace.Zombies",
+    Value = false,
+    Callback = function(enabled)
+        State.AimbotZombiesEnabled = enabled
+        if enabled then StartAimbotZombies() else StopAimbotZombies() end
+    end,
+})
+
+TabCombat:Toggle({
+    Title = "Aimbot Bots",
+    Desc  = "Aims at the belly of any NPC/Bot visible on screen",
+    Value = false,
+    Callback = function(enabled)
+        State.AimbotBotsEnabled = enabled
+        if enabled then StartAimbotBots() else StopAimbotBots() end
+    end,
+})
+
+-- ============================================================
+-- TAB: ESP
+-- ============================================================
+TabESP:Toggle({
+    Title = "ESP Player Highlight",
+    Desc  = "Highlights all players in green",
+    Value = false,
+    Callback = function(enabled)
+        State.EspHighlightEnabled = enabled
+        if enabled then EnableHighlightESP() else ClearHighlights() end
+    end,
+})
+
+TabESP:Toggle({
+    Title = "ESP Nickname",
+    Desc  = "Shows @username above each player",
+    Value = false,
+    Callback = function(enabled)
+        State.EspNicknameEnabled = enabled
+        if enabled then EnableNicknameESP() else ClearNicknames() end
+    end,
+})
+
+TabESP:Toggle({
+    Title = "ESP All Bots",
+    Desc  = "Shows 'Bot' label above every NPC/Bot in the map",
+    Value = false,
+    Callback = function(enabled)
+        State.EspBotsEnabled = enabled
+        if enabled then EnableEspBots() else ClearBotLabels() end
+    end,
+})
+
+-- ============================================================
+-- TAB: PICK UP ITEMS
+-- ============================================================
+TabPickup:Toggle({
+    Title = "Notification when the item spawns",
+    Desc  = "Notifies when items spawn",
+    Value = false,
+    Callback = function(enabled)
+        State.SpawnNotifyEnabled = enabled
+        if enabled then StartSpawnWatcher() else StopSpawnWatcher() end
+    end,
+})
+
+TabPickup:Dropdown({
+    Title  = "Mode",
+    Desc   = "Select grab mode: Mobile uses FireServer, PC uses E key",
+    Values = { "Grab mode adaptive mobile", "Grab mode Pc adaptive" },
+    Value  = "Grab mode adaptive mobile",
+    Multi  = false,
+    Callback = function(value)
+        State.GrabMode = value
+        WindUI:Notify({ Title = "Grab Mode", Content = "Changed to: " .. value, Duration = 3, Icon = "settings" })
+    end,
+})
+
+TabPickup:Button({ Title = "Grab Shield",    Desc = "Teleports to Shield and grabs it",    Callback = function() GrabItem("Shield")    end })
+TabPickup:Button({ Title = "Grab Katana",    Desc = "Teleports to Katana and grabs it",    Callback = function() GrabItem("Katana")    end })
+TabPickup:Button({ Title = "Grab L106 Gun",  Desc = "Teleports to L106 and grabs it",      Callback = function() GrabItem("L106")      end })
+TabPickup:Button({ Title = "Grab Knife",     Desc = "Teleports to Knife and grabs it",     Callback = function() GrabItem("Knife")     end })
+TabPickup:Button({ Title = "Grab Briefcase", Desc = "Teleports to Briefcase and grabs it", Callback = function() GrabItem("Briefcase") end })
+TabPickup:Button({ Title = "Grab Sledge",    Desc = "Teleports to Sledge and grabs it",    Callback = function() GrabItem("Sledge")    end })
+TabPickup:Button({ Title = "Grab Vest",      Desc = "Teleports to Vest and grabs it",      Callback = function() GrabItem("Vest")      end })
+TabPickup:Button({ Title = "Grab Bandage",   Desc = "Teleports to Bandage and grabs it",   Callback = function() GrabItem("Bandage")   end })
+TabPickup:Button({ Title = "Grab AS-VAL",    Desc = "Teleports to AS-VAL and grabs it",    Callback = function() GrabItem("AS-VAL")    end })
+TabPickup:Button({ Title = "Grab Tactical",  Desc = "Teleports to Tactical and grabs it",  Callback = function() GrabItem("Tactical")  end })
+
+TabPickup:Section({ Title = "Auto" })
+
+TabPickup:Toggle({
+    Title = "Auto Grab Shield",
+    Desc  = "Instantly grabs Shield when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrab.Shield = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems("Shield") end
+    end,
+})
+
+TabPickup:Toggle({
+    Title = "Auto Grab Katana",
+    Desc  = "Instantly grabs Katana when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrab.Katana = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems("Katana") end
+    end,
+})
+
+TabPickup:Toggle({
+    Title = "Auto Grab L106 Gun",
+    Desc  = "Instantly grabs L106 when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrab.L106 = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems("L106") end
+    end,
+})
+
+TabPickup:Toggle({
+    Title = "Auto Grab Knife",
+    Desc  = "Instantly grabs Knife when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrab.Knife = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems("Knife") end
+    end,
+})
+
+TabPickup:Toggle({
+    Title = "Auto Grab Briefcase",
+    Desc  = "Instantly grabs Briefcase when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrab.Briefcase = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems("Briefcase") end
+    end,
+})
+
+TabPickup:Toggle({
+    Title = "Auto Grab Sledge",
+    Desc  = "Instantly grabs Sledge when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrab.Sledge = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems("Sledge") end
+    end,
+})
+
+TabPickup:Toggle({
+    Title = "Auto Grab Vest",
+    Desc  = "Instantly grabs Vest when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrab.Vest = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems("Vest") end
+    end,
+})
+
+TabPickup:Toggle({
+    Title = "Auto Grab Bandage",
+    Desc  = "Instantly grabs Bandage when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrab.Bandage = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems("Bandage") end
+    end,
+})
+
+TabPickup:Toggle({
+    Title = "Auto Grab AS-VAL",
+    Desc  = "Instantly grabs AS-VAL when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrab["AS-VAL"] = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems("AS-VAL") end
+    end,
+})
+
+TabPickup:Toggle({
+    Title = "Auto Grab Tactical",
+    Desc  = "Instantly grabs Tactical when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrab.Tactical = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems("Tactical") end
+    end,
+})
+
+TabPickup:Toggle({
+    Title = "Auto Grab All Items",
+    Desc  = "Instantly grabs every item when it spawns or is already on the map",
+    Value = false,
+    Callback = function(enabled)
+        State.AutoGrabAll = enabled
+        RefreshAutoGrabWatcher()
+        if enabled then GrabExistingItems(nil) end
+    end,
+})
+
+-- ============================================================
+-- TAB: LOCAL PLAYER
+-- ============================================================
+TabLocal:Toggle({
+    Title = "TpWalk 1",
+    Desc  = "Makes you a little faster",
+    Value = false,
+    Callback = function(enabled)
+        State.TpWalkEnabled = enabled
+        if enabled then StartTpWalk() else StopTpWalk() end
+    end,
+})
+
+TabLocal:Toggle({
+    Title = "Noclip",
+    Desc  = "Disables collision for your character, allowing you to walk through walls",
+    Value = false,
+    Callback = function(enabled)
+        State.NoclipEnabled = enabled
+        if enabled then StartNoclip() else StopNoclip() end
+    end,
+})
+
+TabLocal:Toggle({
+    Title = "Anti-Void",
+    Desc  = "When falling into the void, teleports you back to the last safe position with ground",
+    Value = false,
+    Callback = function(enabled)
+        State.AntiVoidEnabled = enabled
+        if enabled then StartAntiVoid() else StopAntiVoid() end
+    end,
+})
+
+TabLocal:Toggle({
+    Title = "Inf Jump",
+    Desc  = "Allows you to jump infinitely in the air",
+    Value = false,
+    Callback = function(enabled)
+        State.InfJumpEnabled = enabled
+        if enabled then StartInfJump() else StopInfJump() end
+    end,
+})
+
+-- ============================================================
+-- TAB: MINI GAME
+-- ============================================================
+TabMiniGame:Button({
+    Title = "Finish bomb minefield",
+    Desc  = "Teleports to the end of the bomb minefield (only if the location has ground)",
+    Callback = function()
+        local targetPos = Vector3.new(183, 4, 204)
+
+        local hasGround = HasGroundAt(targetPos + Vector3.new(0, 5, 0), { LocalPlayer.Character })
+
+        if not hasGround then
+            WindUI:Notify({
+                Title    = "Mini Game",
+                Content  = "The place doesn't have a defined location yet",
+                Duration = 3,
+                Icon     = "x",
+            })
+            return
+        end
+
+        local char = LocalPlayer.Character
+        if not char then
+            WindUI:Notify({ Title = "Error", Content = "Character not found!", Duration = 2, Icon = "x" })
+            return
+        end
+
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then
+            WindUI:Notify({ Title = "Error", Content = "HumanoidRootPart not found!", Duration = 2, Icon = "x" })
+            return
+        end
+
+        root.CFrame = CFrame.new(targetPos)
+        WindUI:Notify({
+            Title    = "Mini Game",
+            Content  = "Teleported to end of bomb minefield!",
+            Duration = 2,
+            Icon     = "check",
+        })
+    end,
+})
+
+-- ============================================================
+-- STARTUP NOTIFICATION
+-- ============================================================
+WindUI:Notify({
+    Title    = "The Button",
+    Content  = "Script loaded! by: abyssnt",
+    Duration = 1,
+    Icon     = "check",
+})

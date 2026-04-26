@@ -590,7 +590,7 @@ local function StartAntiVoid()
             end
         end
 
-        if pos.Y < -100 then
+        if pos.Y < -50 then
             local targetCF = lastSafeCFrame or (root.CFrame + Vector3.new(0, 60, 0))
 
             -- Teleporte suave via Tween no HumanoidRootPart

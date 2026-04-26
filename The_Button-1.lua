@@ -596,7 +596,7 @@ local function StartAntiVoid()
         end
 
         -- Detecta void
-        if pos.Y < -100 then
+        if pos.Y < -25 then
             antiVoidRecovering = true
 
             WindUI:Notify({

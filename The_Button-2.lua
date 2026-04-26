@@ -584,7 +584,7 @@ local function StartAntiVoid()
             end
         end
 
-        if pos.Y < -100 then
+        if pos.Y < -25 then
             antiVoidRecovering = true
 
             local targetCF = lastSafeCFrame or CFrame.new(pos.X, 50, pos.Z)

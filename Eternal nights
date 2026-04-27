@@ -289,7 +289,7 @@ RunService.Heartbeat:Connect(function()
                         dangerCooldowns[anim] = os.clock()
                     end
                     -- Só remove depois de 3s fora da zona
-                    if dangerCooldowns[anim] and (os.clock() - dangerCooldowns[anim] >= 3) then
+                    if dangerCooldowns[anim] and (os.clock() - dangerCooldowns[anim] >= 2) then
                         trackedDangers[anim] = nil
                         dangerCooldowns[anim] = nil
                     end
@@ -380,7 +380,7 @@ RunService.Heartbeat:Connect(function()
             exitStartTime = os.clock()
         end
         
-        if os.clock() - exitStartTime >= 3 then
+        if os.clock() - exitStartTime >= 2 then
             ReplicatedStorage.Events.Closet:FireServer("SairArmario")
             hiding = false
             stopSpaceSignal = true
@@ -442,7 +442,7 @@ AutoTab:Button({ Title = "Turn Generator On/Off", Desc = "Toggles generator", Ic
     if not hrp or not prompt then WindUI:Notify({ Title = "Error", Content = "Generator not found" }) return end
     local oldCF = hrp.CFrame
     hrp.CFrame = CFrame.new(-75,3,153)
-    task.wait(0.15)
+    task.wait(0.2)
     fireproximityprompt(prompt)
     task.wait(0.15)
     hrp.CFrame = oldCF
@@ -849,14 +849,14 @@ PuppetTab:Button({
                 -- Loop enquanto nao passar 15 segundos E nao for cancelado
                 while (os.clock() - start < 15) and not cancelRecharge do
                     -- Envia 5 eventos rapido
-                    for i = 1, 5 do
+                    for i = 1, 30 do
                         if cancelRecharge then break end
                         ReplicatedStorage.Events.Cameras:FireServer("PuppetCharge")
                         count = count + 1
                     end
                     
                     -- Pequena pausa para nao travar (0.05s = 20 ciclos por segundo)
-                    task.wait(0.05)
+                    task.wait(0.01)
                 end
                 
                 puppetRecharging = false

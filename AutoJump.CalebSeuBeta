@@ -1,0 +1,97 @@
+local Players=game:GetService("Players")
+local RunService=game:GetService("RunService")
+local player=Players.LocalPlayer
+local gui=Instance.new("ScreenGui")
+gui.Name="JumpSpam"
+gui.ResetOnSpawn=false
+gui.Parent=player:WaitForChild("PlayerGui")
+
+local btn=Instance.new("TextButton")
+btn.Size=UDim2.new(0,160,0,80)
+btn.Position=UDim2.new(0.5,-80,0.7,0)
+btn.BackgroundColor3=Color3.new(0.15,0.15,0.15)
+btn.Text="Auto Spam Jump"
+btn.TextColor3=Color3.new(1,1,1)
+btn.TextSize=18
+btn.Font=Enum.Font.GothamBold
+btn.TextWrapped=true
+btn.Parent=gui
+Instance.new("UICorner",btn).CornerRadius=UDim.new(0,14)
+
+local spamming=false
+local conn=nil
+local lastJump=0
+
+local function getH()
+	local c=player.Character
+	if c then return c:FindFirstChildOfClass("Humanoid") end
+end
+
+local function toggle()
+	spamming=not spamming
+	if spamming then
+		btn.Text="Auto Spam Jump [ON]"
+		btn.BackgroundColor3=Color3.new(0,0.6,0)
+		lastJump=tick()
+		conn=RunService.Heartbeat:Connect(function()
+			if not spamming then return end
+			if tick()-lastJump>=0.1 then
+				lastJump=tick()
+				local h=getH()
+				if h and h:GetState()~=Enum.HumanoidStateType.Jumping and h:GetState()~=Enum.HumanoidStateType.Freefall then
+					h:ChangeState(Enum.HumanoidStateType.Jumping)
+				end
+			end
+		end)
+	else
+		btn.Text="Auto Spam Jump"
+		btn.BackgroundColor3=Color3.new(0.15,0.15,0.15)
+		if conn then conn:Disconnect() conn=nil end
+	end
+end
+
+-- Dragging
+local drag=false
+local dragStart=nil
+local startPos=nil
+
+btn.InputBegan:Connect(function(input)
+	if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then
+		drag=true
+		dragStart=input.Position
+		startPos=btn.Position
+	end
+end)
+
+btn.InputChanged:Connect(function(input)
+	if drag and (input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseMovement) then
+		local delta=input.Position-dragStart
+		btn.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
+	end
+end)
+
+btn.InputEnded:Connect(function(input)
+	if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then
+		local delta=(input.Position-dragStart).Magnitude
+		if delta<10 then
+			toggle()
+		end
+		drag=false
+	end
+end)
+
+player.CharacterAdded:Connect(function()
+	if spamming and not conn then
+		lastJump=tick()
+		conn=RunService.Heartbeat:Connect(function()
+			if not spamming then return end
+			if tick()-lastJump>=0.1 then
+				lastJump=tick()
+				local h=getH()
+				if h and h:GetState()~=Enum.HumanoidStateType.Jumping and h:GetState()~=Enum.HumanoidStateType.Freefall then
+					h:ChangeState(Enum.HumanoidStateType.Jumping)
+				end
+			end
+		end)
+	end
+end)

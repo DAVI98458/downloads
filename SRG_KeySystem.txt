@@ -93,7 +93,7 @@ end
 
 local function fbGet(key)
     local ok, res = pcall(function()
-        return HttpService:GetAsync(FIREBASE_URL .. "/keys/" .. fbKeyPath(key) .. ".json", true)
+        return HttpService:GetAsync(FIREBASE_URL .. "//keys/" .. fbKeyPath(key) .. ".json", true)
     end)
     if not ok or not res or res == "null" then return nil end
     local dok, data = pcall(function() return HttpService:JSONDecode(res) end)
@@ -385,7 +385,7 @@ local function buildKeyUI()
     checkBtn.MouseButton1Click:Connect(function()
         local key = keyBox.Text:gsub("%s+","")
         if key == "" then
-            statusLbl.Text = "❌  Paste your key first."
+            statusLbl.Text = "X  Paste your key first."
             statusLbl.TextColor3 = Color3.fromRGB(248,113,113); return
         end
         statusLbl.Text = "⏳  Verifying..."

@@ -84,7 +84,7 @@ local function deriveTag(dayStr)
     return result:upper()
 end
 
-local FIREBASE_URL = "SEU_DATABASE_URL" -- ex: https://meu-projeto-default-rtdb.firebaseio.com
+local FIREBASE_URL = "https://scripts-ca84b-default-rtdb.firebaseio.com/" -- ex: https://meu-projeto-default-rtdb.firebaseio.com
 local HttpService  = game:GetService("HttpService")
 
 local function fbKeyPath(key)

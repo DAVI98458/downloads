@@ -1,0 +1,254 @@
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "mansion incident",
+    Author = "by: Abyssnt",
+    Icon = "user-plus",
+    Theme = "Dark",
+    Transparent = true,
+})
+
+-- Misc Tab
+local MiscTab = Window:Tab({ Title = "Misc", Icon = "settings" })
+
+-- Grab Battery Button
+MiscTab:Button({
+    Title = "Grab battery",
+    Callback = function()
+        local cd = workspace:FindFirstChild("BatteryCrate") and workspace.BatteryCrate:FindFirstChild("ClickDetector")
+        if cd then
+            fireclickdetector(cd)
+        end
+    end,
+})
+
+-- Put sweets in jar Button
+MiscTab:Button({
+    Title = "put the sweets in the jar",
+    Callback = function()
+        local fakeCd = workspace:FindFirstChild("FakeCandyBag") and workspace.FakeCandyBag:FindFirstChild("ClickDetector")
+        if fakeCd then
+            fireclickdetector(fakeCd)
+        end
+        task.wait(0.3)
+        local bowlCd = workspace:FindFirstChild("CandyBowl") and workspace.CandyBowl:FindFirstChild("ClickDetector")
+        if bowlCd then
+            fireclickdetector(bowlCd)
+        end
+    end,
+})
+
+-- Eliminate all existing damage Button
+MiscTab:Button({
+    Title = "eliminate all existing damage",
+    Callback = function()
+        local lights = workspace:FindFirstChild("Lights")
+        if not lights then return end
+        
+        local children = lights:GetChildren()
+        local totalToDelete = 0
+        
+        for i = 1, 10 do
+            local child = children[i]
+            if child and child:FindFirstChild("Zone") then
+                totalToDelete = totalToDelete + 1
+            end
+        end
+        
+        if totalToDelete == 0 then
+            WindUI:Notify({
+                Title = "Info",
+                Content = "no zones found",
+                Duration = 3,
+            })
+            return
+        end
+        
+        WindUI:Notify({
+            Title = "Deleting",
+            Content = "deleting...",
+            Duration = 2,
+        })
+        
+        task.spawn(function()
+            for i = 1, 10 do
+                local child = children[i]
+                if child and child:FindFirstChild("Zone") then
+                    child.Zone:Destroy()
+                    task.wait(1)
+                end
+            end
+            
+            WindUI:Notify({
+                Title = "Done",
+                Content = "all deleted",
+                Duration = 3,
+            })
+        end)
+    end,
+})
+
+-- Esp Monsters at the window Toggle
+local espMonstersConnection
+local espHighlights = {}
+
+local function applyESP()
+    local windows = workspace:FindFirstChild("Windows")
+    if not windows then return end
+    
+    local children = windows:GetChildren()
+    for i = 1, 80 do
+        local child = children[i]
+        if child then
+            local monster = child:FindFirstChild("Monster")
+            if monster and not monster:FindFirstChildOfClass("Highlight") then
+                local hl = Instance.new("Highlight")
+                hl.Name = "MonsterESP"
+                hl.FillColor = Color3.new(1, 0, 0)
+                hl.FillTransparency = 1
+                hl.OutlineColor = Color3.new(1, 0, 0)
+                hl.OutlineTransparency = 0.3
+                hl.Adornee = monster
+                hl.Parent = monster
+                table.insert(espHighlights, hl)
+            end
+        end
+    end
+end
+
+MiscTab:Toggle({
+    Title = "Esp Monsters at the window",
+    Value = false,
+    Callback = function(state)
+        if state then
+            applyESP()
+            espMonstersConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                applyESP()
+            end)
+        else
+            if espMonstersConnection then
+                espMonstersConnection:Disconnect()
+                espMonstersConnection = nil
+            end
+            for _, hl in ipairs(espHighlights) do
+                if hl then
+                    hl:Destroy()
+                end
+            end
+            table.clear(espHighlights)
+        end
+    end,
+})
+
+-- Detector Tab
+local DetectorTab = Window:Tab({ Title = "detector", Icon = "scan-eye" })
+
+-- Kid Detector Toggle
+local kidDetectorConnection
+DetectorTab:Toggle({
+    Title = "kid detector",
+    Value = false,
+    Callback = function(state)
+        if state then
+            kidDetectorConnection = workspace.ChildAdded:Connect(function(child)
+                if child.Name == "Kid" then
+                    WindUI:Notify({
+                        Title = "Alert!",
+                        Content = "kid detected!",
+                        Duration = 3,
+                    })
+                end
+            end)
+            if workspace:FindFirstChild("Kid") then
+                WindUI:Notify({
+                    Title = "Alert!",
+                    Content = "kid detected!",
+                    Duration = 3,
+                })
+            end
+        else
+            if kidDetectorConnection then
+                kidDetectorConnection:Disconnect()
+                kidDetectorConnection = nil
+            end
+        end
+    end,
+})
+
+-- Manual Detector Button
+DetectorTab:Button({
+    Title = "Manual detector",
+    Callback = function()
+        if workspace:FindFirstChild("Kid") then
+            WindUI:Notify({
+                Title = "Result",
+                Content = "child found",
+                Duration = 3,
+            })
+        else
+            WindUI:Notify({
+                Title = "Result",
+                Content = "child not found",
+                Duration = 3,
+            })
+        end
+    end,
+})
+
+-- Player Tab
+local PlayerTab = Window:Tab({ Title = "player", Icon = "user" })
+
+-- Inf Stam Button
+local infStamConnection
+PlayerTab:Button({
+    Title = "Inf stam",
+    Callback = function()
+        if infStamConnection then
+            infStamConnection:Disconnect()
+            infStamConnection = nil
+            WindUI:Notify({
+                Title = "Info",
+                Content = "Inf stam disabled",
+                Duration = 2,
+            })
+            return
+        end
+        
+        local player = game:GetService("Players").LocalPlayer
+        local char = player.Character or player.CharacterAdded:Wait()
+        
+        local function setupStam()
+            local sprint = char:FindFirstChild("Sprint")
+            if sprint then
+                local stam = sprint:FindFirstChild("Stam")
+                if stam and stam:IsA("ValueBase") then
+                    stam.Value = 5
+                    
+                    if infStamConnection then
+                        infStamConnection:Disconnect()
+                    end
+                    
+                    infStamConnection = stam:GetPropertyChangedSignal("Value"):Connect(function()
+                        if stam.Value < 5 then
+                            stam.Value = 5
+                        end
+                    end)
+                end
+            end
+        end
+        
+        setupStam()
+        
+        player.CharacterAdded:Connect(function(newChar)
+            char = newChar
+            task.wait(0.5)
+            setupStam()
+        end)
+        
+        WindUI:Notify({
+            Title = "Info",
+            Content = "Inf stam enabled",
+            Duration = 2,
+        })
+    end,
+})

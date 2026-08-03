@@ -1,0 +1,617 @@
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Config = {
+    Enabled = false,
+    BallNames = {"MPS", "VEF", "TPS", "VCL", "VRF", "UEFA", "VCA", "VRF", "CBM", "SAML", "OFA", "VCL", "VFA", "AIFA"},
+    Prediction = 0.16,
+    Radius = 1.6,
+    LerpWeight = 0.15,
+    MaxVelocity = 120,
+    DeadzoneVel = 1.5,
+    SearchInterval = 0.1,
+    BallOverlapThreshold = 1.3,
+    RecoveryLerp = 0.55,
+    RecoveryFrames = 10,
+
+    -- [[ SHIELDING CONFIG ]] --
+    ShieldingBias = 50,          
+    ShieldActivationDist = 9.0,   
+
+    -- [[ AUTO MOSS CONFIG ]] --
+    MossEnabled = false,
+    MossRadius = 200,
+    HeaderHeight = 5.5,
+    MossPredictionTime = 2.5
+}
+
+local CurrentBall = nil
+local lastPos = Vector3.new(0, 0, 0)
+local initialized = false
+local recoveryCounter = 0
+
+local function SafeDir(v, fallback)
+    local flat = Vector3.new(v.X, 0, v.Z)
+    if flat.Magnitude > 0.01 then return flat.Unit end
+    local fb = Vector3.new(fallback.X, 0, fallback.Z)
+    if fb.Magnitude > 0.01 then return fb.Unit end
+    return Vector3.new(1, 0, 0)
+end
+
+local function GetClosestOpponent(ballPos)
+    local closestEnemy = nil
+    local minDist = math.huge
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team then
+            local char = player.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                local dist = (root.Position - ballPos).Magnitude
+                if dist < minDist then
+                    minDist = dist
+                    closestEnemy = root
+                end
+            end
+        end
+    end
+    return closestEnemy, minDist
+end
+
+local function GetShieldTarget(root, ballPos)
+    local enemyRoot, enemyDist = GetClosestOpponent(ballPos)
+    local defaultDir = SafeDir(root.Position - ballPos, root.CFrame.LookVector)
+    
+    if not enemyRoot or enemyDist > Config.ShieldActivationDist or Config.ShieldingBias == 0 then
+        return ballPos + (defaultDir * Config.Radius)
+    end
+    
+    local shieldDir = SafeDir(ballPos - enemyRoot.Position, root.CFrame.LookVector)
+    local biasAlpha = math.clamp(Config.ShieldingBias / 100, 0, 1)
+    local finalDir = defaultDir:Lerp(shieldDir, biasAlpha).Unit
+    return ballPos + (finalDir * Config.Radius)
+end
+
+local function GetRecoveryTarget(root, ballPos)
+    local awayBall = SafeDir(root.Position - ballPos, root.CFrame.LookVector)
+    return ballPos + (awayBall * Config.Radius)
+end
+
+-- [[ AUTO MOSS PREDICTION LOGIC ]] --
+local function GetMossTarget(root, ball)
+    local p0 = ball.Position
+    local v0 = ball.Velocity
+    local g = workspace.Gravity
+    
+    local targetY = root.Position.Y + Config.HeaderHeight
+    local a = -0.5 * g
+    local b = v0.Y
+    local c = p0.Y - targetY
+    
+    local discriminant = (b * b) - (4 * a * c)
+    local t = Config.MossPredictionTime
+    
+    if discriminant >= 0 and math.abs(a) > 0.001 then
+        local t1 = (-b + math.sqrt(discriminant)) / (2 * a)
+        local t2 = (-b - math.sqrt(discriminant)) / (2 * a)
+        
+        local validTimes = {}
+        if t1 > 0 then table.insert(validTimes, t1) end
+        if t2 > 0 then table.insert(validTimes, t2) end
+        
+        if #validTimes > 0 then
+            table.sort(validTimes)
+            t = validTimes[1] -- Intercept at earliest positive time frame
+        end
+    end
+    
+    t = math.clamp(t, 0, Config.MossPredictionTime)
+    local predictedPos = p0 + (v0 * t) + (0.5 * Vector3.new(0, -g, 0) * (t * t))
+    return Vector3.new(predictedPos.X, root.Position.Y, predictedPos.Z)
+end
+
+task.spawn(function()
+    while task.wait(Config.SearchInterval) do
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then continue end
+        local best, minDist = nil, math.huge
+
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                for _, name in ipairs(Config.BallNames) do
+                    if obj.Name == name then
+                        local d = (obj.Position - root.Position).Magnitude
+                        if d < minDist then
+                            minDist = d
+                            best = obj
+                        end
+                        break
+                    end
+                end
+            end
+        end
+
+        CurrentBall = best
+        if best and not initialized then
+            lastPos = best.Position + SafeDir(
+                (char.HumanoidRootPart and char.HumanoidRootPart.Position or Vector3.new(1,0,0)) - best.Position,
+                Vector3.new(1, 0, 0)
+            ) * Config.Radius
+            initialized = true
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(function(dt)
+    if not Config.Enabled and not Config.MossEnabled then return end
+    local Char = LocalPlayer.Character
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+    local Hum  = Char and Char:FindFirstChild("Humanoid")
+    if not Root or not Hum or not CurrentBall or not CurrentBall.Parent then return end
+    
+    local rawVel = CurrentBall.Velocity
+    local velMag = rawVel.Magnitude
+    local clampedVel = velMag > Config.MaxVelocity and (rawVel.Unit * Config.MaxVelocity) or rawVel
+    local ballPos = velMag > Config.DeadzoneVel and CurrentBall.Position + (clampedVel * Config.Prediction) or CurrentBall.Position
+    local flatDist = Vector3.new(Root.Position.X - CurrentBall.Position.X, 0, Root.Position.Z - CurrentBall.Position.Z).Magnitude
+    
+    local targetPos, activeLerp
+    local mossingActive = false
+    
+    if Config.Enabled and flatDist < Config.BallOverlapThreshold then 
+        recoveryCounter = Config.RecoveryFrames 
+    end
+    
+    if Config.Enabled and recoveryCounter > 0 then
+        recoveryCounter -= 1
+        targetPos = GetRecoveryTarget(Root, CurrentBall.Position)
+        activeLerp = Config.RecoveryLerp
+    elseif Config.MossEnabled and (CurrentBall.Position - Root.Position).Magnitude <= Config.MossRadius and CurrentBall.Position.Y > (Root.Position.Y + 2.5) then
+        -- Execute Auto Moss positioning via MoveTo when active
+        targetPos = GetMossTarget(Root, CurrentBall)
+        activeLerp = 0.35
+        mossingActive = true
+    elseif Config.Enabled then
+        targetPos = GetShieldTarget(Root, ballPos)
+        local d = (targetPos - Root.Position).Magnitude
+        activeLerp = math.clamp(Config.LerpWeight * (d / 8), 0.06, 0.5)
+    end
+    
+    if targetPos then
+        lastPos = lastPos:Lerp(targetPos, activeLerp)
+        
+        if not mossingActive and Config.Enabled then
+            local toBall = Vector3.new(lastPos.X - CurrentBall.Position.X, 0, lastPos.Z - CurrentBall.Position.Z)
+            if toBall.Magnitude < Config.Radius then
+                local pushDir = toBall.Magnitude > 0.01 and toBall.Unit or SafeDir(Root.Position - CurrentBall.Position, Root.CFrame.LookVector)
+                lastPos = Vector3.new(CurrentBall.Position.X + pushDir.X * Config.Radius, lastPos.Y, CurrentBall.Position.Z + pushDir.Z * Config.Radius)
+            end
+        end
+        
+        local goal = Vector3.new(lastPos.X, Root.Position.Y, lastPos.Z)
+        if (goal - Root.Position).Magnitude > 0.1 then 
+            Hum:MoveTo(goal) 
+        end
+    end
+end)
+
+local function BuildUI()
+    local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+    if PlayerGui:FindFirstChild("AnimeCoreGui") then PlayerGui.AnimeCoreGui:Destroy() end
+
+    local Gui = Instance.new("ScreenGui")
+    Gui.Name = "AnimeCoreGui"
+    Gui.ResetOnSpawn = false
+    Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    Gui.Parent = PlayerGui
+
+    local Panel = Instance.new("Frame")
+    Panel.Size = UDim2.new(0, 290, 0, 400)
+    Panel.Position = UDim2.new(0.5, -145, 0.5, -200)
+    Panel.BackgroundColor3 = Color3.fromRGB(255, 235, 245)
+    Panel.BorderSizePixel = 0
+    Panel.Active = true
+    Panel.Parent = Gui
+    Instance.new("UICorner", Panel).CornerRadius = UDim.new(0, 18)
+    Instance.new("UIStroke", Panel).Color = Color3.fromRGB(255, 105, 180)
+    Panel:FindFirstChildOfClass("UIStroke").Thickness = 2.5
+
+    local BgImage = Instance.new("ImageLabel")
+    BgImage.Size = UDim2.new(1, 0, 1, 0)
+    BgImage.BackgroundTransparency = 1
+    BgImage.Image = "http://www.roblox.com/asset/?id=1453613358"
+    BgImage.ImageTransparency = 0.35
+    BgImage.ScaleType = Enum.ScaleType.Crop
+    BgImage.ZIndex = 1
+    BgImage.Parent = Panel
+    Instance.new("UICorner", BgImage).CornerRadius = UDim.new(0, 18)
+
+    local Overlay = Instance.new("Frame")
+    Overlay.Size = UDim2.new(1, 0, 1, 0)
+    Overlay.BackgroundColor3 = Color3.fromRGB(255, 235, 245)
+    Overlay.BackgroundTransparency = 0.45
+    Overlay.BorderSizePixel = 0
+    Overlay.ZIndex = 2
+    Overlay.Parent = Panel
+    Instance.new("UICorner", Overlay).CornerRadius = UDim.new(0, 18)
+
+    local Header = Instance.new("Frame")
+    Header.Size = UDim2.new(1, 0, 0, 62)
+    Header.BackgroundColor3 = Color3.fromRGB(255, 160, 200)
+    Header.BorderSizePixel = 0
+    Header.ZIndex = 3
+    Header.Active = true
+    Header.Parent = Panel
+    Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 18)
+
+    local HeaderFix = Instance.new("Frame")
+    HeaderFix.Size = UDim2.new(1, 0, 0, 18)
+    HeaderFix.Position = UDim2.new(0, 0, 1, -18)
+    HeaderFix.BackgroundColor3 = Color3.fromRGB(255, 160, 200)
+    HeaderFix.BorderSizePixel = 0
+    HeaderFix.ZIndex = 3
+    HeaderFix.Parent = Header
+
+    local LogoCircle = Instance.new("Frame")
+    LogoCircle.Size = UDim2.new(0, 46, 0, 46)
+    LogoCircle.Position = UDim2.new(0, 10, 0, 8)
+    LogoCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    LogoCircle.BorderSizePixel = 0
+    LogoCircle.ZIndex = 4
+    LogoCircle.Parent = Header
+    Instance.new("UICorner", LogoCircle).CornerRadius = UDim.new(1, 0)
+    local ls = Instance.new("UIStroke", LogoCircle)
+    ls.Thickness = 2; ls.Color = Color3.fromRGB(255, 255, 255)
+
+    local Logo = Instance.new("ImageLabel")
+    Logo.Size = UDim2.new(1, 0, 1, 0)
+    Logo.BackgroundTransparency = 1
+    Logo.Image = "http://www.roblox.com/asset/?id=1049906235"
+    Logo.ZIndex = 5
+    Logo.Parent = LogoCircle
+    Instance.new("UICorner", Logo).CornerRadius = UDim.new(1, 0)
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, -68, 0, 24)
+    Title.Position = UDim2.new(0, 64, 0, 10)
+    Title.BackgroundTransparency = 1
+    Title.Text = "MADE BY 4COR ♡"
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 15
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.ZIndex = 4
+    Title.Parent = Header
+
+    local SubTitle = Instance.new("TextLabel")
+    SubTitle.Size = UDim2.new(1, -68, 0, 16)
+    SubTitle.Position = UDim2.new(0, 64, 0, 36)
+    SubTitle.BackgroundTransparency = 1
+    SubTitle.Text = "Auto Dribble & Shield  ·  Soccer"
+    SubTitle.TextColor3 = Color3.fromRGB(255, 235, 245)
+    SubTitle.Font = Enum.Font.Gotham
+    SubTitle.TextSize = 11
+    SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+    SubTitle.ZIndex = 4
+    SubTitle.Parent = Header
+
+    local Content = Instance.new("Frame")
+    Content.Size = UDim2.new(1, -24, 0, 320)
+    Content.Position = UDim2.new(0, 12, 0, 70)
+    Content.BackgroundTransparency = 1
+    Content.ZIndex = 3
+    Content.Parent = Panel
+
+    local CL = Instance.new("UIListLayout")
+    CL.SortOrder = Enum.SortOrder.LayoutOrder
+    CL.Padding = UDim.new(0, 8)
+    CL.Parent = Content
+
+    local function MakeCard(h, order)
+        local C = Instance.new("Frame")
+        C.Size = UDim2.new(1, 0, 0, h)
+        C.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        C.BackgroundTransparency = 0.15
+        C.BorderSizePixel = 0
+        C.LayoutOrder = order
+        C.ZIndex = 4
+        C.Parent = Content
+        Instance.new("UICorner", C).CornerRadius = UDim.new(0, 12)
+        local s = Instance.new("UIStroke", C)
+        s.Thickness = 1.5; s.Color = Color3.fromRGB(255, 182, 213); s.Transparency = 0.2
+        return C
+    end
+
+    local function Dot(p, y)
+        local D = Instance.new("Frame")
+        D.Size = UDim2.new(0, 10, 0, 10)
+        D.Position = UDim2.new(0, 12, 0, y)
+        D.BackgroundColor3 = Color3.fromRGB(255, 100, 150)
+        D.BorderSizePixel = 0; D.ZIndex = 5; D.Parent = p
+        Instance.new("UICorner", D).CornerRadius = UDim.new(1, 0)
+        return D
+    end
+
+    local function Lbl(p, txt, y, sz, bold, col, xoff)
+        local L = Instance.new("TextLabel")
+        L.Size = UDim2.new(1, -102, 0, 18)
+        L.Position = UDim2.new(0, xoff or 28, 0, y)
+        L.BackgroundTransparency = 1
+        L.Text = txt
+        L.TextColor3 = col or Color3.fromRGB(220, 60, 120)
+        L.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
+        L.TextSize = sz or 12
+        L.TextXAlignment = Enum.TextXAlignment.Left
+        L.ZIndex = 5; L.Parent = p
+        return L
+    end
+
+    local function ToggleBtn(p, y, startOn)
+        local B = Instance.new("TextButton")
+        B.Size = UDim2.new(0, 76, 0, 24)
+        B.Position = UDim2.new(1, -82, 0, y)
+        B.BackgroundColor3 = startOn and Color3.fromRGB(100, 220, 160) or Color3.fromRGB(255, 100, 150)
+        B.BorderSizePixel = 0
+        B.Text = startOn and "ON" or "OFF"
+        B.TextColor3 = Color3.fromRGB(255, 255, 255)
+        B.Font = Enum.Font.GothamBold
+        B.TextSize = 11; B.ZIndex = 6; B.Parent = p
+        Instance.new("UICorner", B).CornerRadius = UDim.new(0, 8)
+        return B
+    end
+
+    local function RadiusBox(p, val, y)
+        local Box = Instance.new("TextBox")
+        Box.Size = UDim2.new(0, 55, 0, 22)
+        Box.Position = UDim2.new(0, 28, 0, y)
+        Box.BackgroundColor3 = Color3.fromRGB(255, 210, 230)
+        Box.BorderSizePixel = 0
+        Box.Text = tostring(val)
+        Box.TextColor3 = Color3.fromRGB(200, 60, 110)
+        Box.Font = Enum.Font.GothamBold
+        Box.TextSize = 12
+        Box.ClearTextOnFocus = false
+        Box.ZIndex = 6; Box.Parent = p
+        Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 6)
+        return Box
+    end
+
+    -- CARD 1 - AUTO DRIBBLE
+    local C1 = MakeCard(105, 1)
+    local DDot = Dot(C1, 12)
+    Lbl(C1, "Auto Dribble", 6, 13, true)
+    local DStatus = Lbl(C1, "STATUS  ·  OFF", 24, 11, false, Color3.fromRGB(200, 140, 170))
+    local DToggle = ToggleBtn(C1, 8, Config.Enabled)
+    Lbl(C1, "Dribble Radius:", 52, 11, true, Color3.fromRGB(220, 60, 120), 12)
+    local DRadBox = RadiusBox(C1, Config.Radius, 70)
+    
+    local hint = Instance.new("TextLabel")
+    hint.Size = UDim2.new(0, 80, 0, 22)
+    hint.Position = UDim2.new(0, 88, 0, 70)
+    hint.BackgroundTransparency = 1
+    hint.Text = "← type & enter"
+    hint.TextColor3 = Color3.fromRGB(220, 160, 190)
+    hint.Font = Enum.Font.Gotham
+    hint.TextSize = 10
+    hint.TextXAlignment = Enum.TextXAlignment.Left
+    hint.ZIndex = 6; hint.Parent = C1
+
+    DToggle.MouseButton1Click:Connect(function()
+        Config.Enabled = not Config.Enabled
+        initialized = false
+        recoveryCounter = 0
+    end)
+
+    DRadBox.FocusLost:Connect(function()
+        local v = tonumber(DRadBox.Text)
+        if v and v > 0 then Config.Radius = v else DRadBox.Text = tostring(Config.Radius) end
+    end)
+
+    -- CARD 2 - SHIELDING SLIDER CARD
+    local C2 = MakeCard(75, 2)
+    Dot(C2, 12)
+    Lbl(C2, "Shielding System", 6, 13, true)
+    local BiasValLabel = Lbl(C2, "BIAS VALUE: " .. Config.ShieldingBias, 24, 11, false, Color3.fromRGB(200, 140, 170))
+   
+    local Track = Instance.new("Frame")
+    Track.Size = UDim2.new(1, -40, 0, 6)
+    Track.Position = UDim2.new(0, 20, 0, 52)
+    Track.BackgroundColor3 = Color3.fromRGB(255, 210, 230)
+    Track.BorderSizePixel = 0
+    Track.ZIndex = 5
+    Track.Parent = C2
+    Instance.new("UICorner", Track).CornerRadius = UDim.new(1, 0)
+    
+    local Fill = Instance.new("Frame")
+    Fill.Size = UDim2.new(Config.ShieldingBias / 100, 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+    Fill.BorderSizePixel = 0
+    Fill.ZIndex = 5
+    Fill.Parent = Track
+    Instance.new("UICorner", Fill).CornerRadius = UDim.new(1, 0)
+    
+    local SliderButton = Instance.new("TextButton")
+    SliderButton.Size = UDim2.new(0, 14, 0, 14)
+    SliderButton.Position = UDim2.new(Config.ShieldingBias / 100, -7, 0.5, -7)
+    SliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    SliderButton.Text = ""
+    SliderButton.ZIndex = 6
+    SliderButton.Parent = Track
+    Instance.new("UICorner", SliderButton).CornerRadius = UDim.new(1, 0)
+    local sStroke = Instance.new("UIStroke", SliderButton)
+    sStroke.Color = Color3.fromRGB(255, 105, 180); sStroke.Thickness = 1.5
+
+    local sliding = false
+    local function UpdateSlider(input)
+        local trackPos = Track.AbsolutePosition
+        local trackSize = Track.AbsoluteSize
+        local mouseX = input.Position.X
+        local percentage = math.clamp((mouseX - trackPos.X) / trackSize.X, 0, 1)
+        
+        Config.ShieldingBias = math.round(percentage * 100)
+        Fill.Size = UDim2.new(percentage, 0, 1, 0)
+        SliderButton.Position = UDim2.new(percentage, -7, 0.5, -7)
+        BiasValLabel.Text = "BIAS VALUE: " .. Config.ShieldingBias
+    end
+
+    SliderButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = true
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            UpdateSlider(input)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            sliding = false
+        end
+    end)
+
+    -- CARD 3 - AUTO MOSS SYSTEM
+    local C3 = MakeCard(105, 3)
+    local MDot = Dot(C3, 12)
+    Lbl(C3, "Auto Moss System", 6, 13, true)
+    local MStatus = Lbl(C3, "STATUS  ·  OFF", 24, 11, false, Color3.fromRGB(200, 140, 170))
+    local MToggle = ToggleBtn(C3, 8, Config.MossEnabled)
+    
+    local HeightValLabel = Lbl(C3, "HEADER HEIGHT: " .. string.format("%.1f", Config.HeaderHeight), 52, 11, true, Color3.fromRGB(220, 60, 120), 12)
+    
+    local MTrack = Instance.new("Frame")
+    MTrack.Size = UDim2.new(1, -40, 0, 6)
+    MTrack.Position = UDim2.new(0, 20, 0, 78)
+    MTrack.BackgroundColor3 = Color3.fromRGB(255, 210, 230)
+    MTrack.BorderSizePixel = 0
+    MTrack.ZIndex = 5
+    MTrack.Parent = C3
+    Instance.new("UICorner", MTrack).CornerRadius = UDim.new(1, 0)
+    
+    local MFill = Instance.new("Frame")
+    MFill.Size = UDim2.new(Config.HeaderHeight / 5.5, 0, 1, 0)
+    MFill.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+    MFill.BorderSizePixel = 0
+    MFill.ZIndex = 5
+    MFill.Parent = MTrack
+    Instance.new("UICorner", MFill).CornerRadius = UDim.new(1, 0)
+    
+    local MSliderButton = Instance.new("TextButton")
+    MSliderButton.Size = UDim2.new(0, 14, 0, 14)
+    MSliderButton.Position = UDim2.new(Config.HeaderHeight / 5.5, -7, 0.5, -7)
+    MSliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    MSliderButton.Text = ""
+    MSliderButton.ZIndex = 6
+    MSliderButton.Parent = MTrack
+    Instance.new("UICorner", MSliderButton).CornerRadius = UDim.new(1, 0)
+    local mStroke = Instance.new("UIStroke", MSliderButton)
+    mStroke.Color = Color3.fromRGB(255, 105, 180); mStroke.Thickness = 1.5
+
+    local mSliding = false
+    local function UpdateMossSlider(input)
+        local trackPos = MTrack.AbsolutePosition
+        local trackSize = MTrack.AbsoluteSize
+        local mouseX = input.Position.X
+        local percentage = math.clamp((mouseX - trackPos.X) / trackSize.X, 0, 1)
+        
+        Config.HeaderHeight = math.round(percentage * 5.5 * 10) / 10
+        MFill.Size = UDim2.new(percentage, 0, 1, 0)
+        MSliderButton.Position = UDim2.new(percentage, -7, 0.5, -7)
+        HeightValLabel.Text = "HEADER HEIGHT: " .. string.format("%.1f", Config.HeaderHeight)
+    end
+
+    MSliderButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            mSliding = true
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if mSliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            UpdateMossSlider(input)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            mSliding = false
+        end
+    end)
+
+    MToggle.MouseButton1Click:Connect(function()
+        Config.MossEnabled = not Config.MossEnabled
+    end)
+
+    local function UpdateUI()
+        -- Dribble Status UI Update
+        if Config.Enabled then
+            DDot.BackgroundColor3 = Color3.fromRGB(100, 255, 180)
+            DStatus.Text = "STATUS  ·  ON"
+            DStatus.TextColor3 = Color3.fromRGB(80, 200, 140)
+        else
+            DDot.BackgroundColor3 = Color3.fromRGB(255, 100, 150)
+            DStatus.Text = "STATUS  ·  OFF"
+            DStatus.TextColor3 = Color3.fromRGB(200, 140, 170)
+        end
+
+        -- Moss Status UI Update
+        if Config.MossEnabled then
+            MDot.BackgroundColor3 = Color3.fromRGB(100, 255, 180)
+            MStatus.Text = "STATUS  ·  ON"
+            MStatus.TextColor3 = Color3.fromRGB(80, 200, 140)
+        else
+            MDot.BackgroundColor3 = Color3.fromRGB(255, 100, 150)
+            MStatus.Text = "STATUS  ·  OFF"
+            MStatus.TextColor3 = Color3.fromRGB(200, 140, 170)
+        end
+
+        if Config.Enabled then
+            DToggle.Text = "ON"
+            DToggle.BackgroundColor3 = Color3.fromRGB(100, 220, 160)
+        else
+            DToggle.Text = "OFF"
+            DToggle.BackgroundColor3 = Color3.fromRGB(255, 100, 150)
+        end
+
+        if Config.MossEnabled then
+            MToggle.Text = "ON"
+            MToggle.BackgroundColor3 = Color3.fromRGB(100, 220, 160)
+        else
+            MToggle.Text = "OFF"
+            MToggle.BackgroundColor3 = Color3.fromRGB(255, 100, 150)
+        end
+    end
+
+    RunService.Heartbeat:Connect(UpdateUI)
+
+    local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
+    Header.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragInput = i
+            dragStart = Vector2.new(i.Position.X, i.Position.Y)
+            startPos = Panel.Position
+
+            i.Changed:Connect(function()
+                if i.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+            dragInput = i
+        end
+        if dragging and i == dragInput then
+            local d = Vector2.new(i.Position.X, i.Position.Y) - dragStart
+            Panel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+        end
+    end)
+
+    UpdateUI()
+end
+
+LocalPlayer:WaitForChild("PlayerGui")
+task.spawn(BuildUI)

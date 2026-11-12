@@ -1,1 +1,16 @@
-loadstring(game:HttpGet("https://bdfree.bdfree.workers.dev/htu5ztxqbu7v"))()
+local PlaceId = game.PlaceId
+
+local AllowedPlaces = {
+    [17028263624] = true,
+    [13664698400] = true
+}
+
+if AllowedPlaces[PlaceId] then
+    print("Place ID autorizada: " .. PlaceId)
+
+    loadstring(game:HttpGet(
+        "https://bdfree.bdfree.workers.dev/htu5ztxqbu7v"
+    ))()
+else
+    warn("Place ID não autorizada: " .. PlaceId)
+end
